@@ -129,6 +129,8 @@ def submit_quiz(quiz_id):
     time_taken = data.get("time_taken_seconds", 0)
     if not player_name:
         return error("Player name is required", 400)
+    if len(player_name) > 30:
+        return error("Player name must be 30 characters or fewer.", 400)
     if not isinstance(answers, dict):
         return error("Answers must be an object like {\"1\": \"A\"}", 400)
     if not isinstance(time_taken, int) or time_taken < 0:
