@@ -82,6 +82,19 @@ def test_add_question_wrong_option_letter(client):
     response = add_question(client, quiz_id, correct_option="E")
     assert response.status_code == 400
 
+def test_add_question_duplicate_options(client):  
+    quiz_id = create_quiz(client)  
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={  
+        "text": "What is 1 + 1?",  
+        "option_a": "2",  
+        "option_b": "2",  
+        "option_c": "3",  
+        "option_d": "4",  
+        "correct_option": "A",  
+    })  
+    assert response.status_code == 400  
+    assert "error" in response.get_json()
+
 
 def test_add_question_quiz_not_found(client):
     response = add_question(client, 999)
