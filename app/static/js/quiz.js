@@ -70,6 +70,20 @@ function showQuestion() {
 }
 
 async function submitQuiz() {
+    const answeredCount = Object.keys(answers).length;
+    const totalQuestions = quiz.questions.length;
+    const unanswered = totalQuestions - answeredCount;
+
+    if (unanswered > 0) {
+        const confirmMessage =
+            "You have " + unanswered + " unanswered question" +
+            (unanswered === 1 ? "" : "s") +
+            ". They will be counted as wrong.\n\nSubmit anyway?";
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+    }
+
     const seconds = Math.round((Date.now() - startTime) / 1000);
     const response = await fetch("/api/quizzes/" + quizId + "/submit", {
         method: "POST",
