@@ -11,7 +11,14 @@ let quiz = null;
 let playerName = "";
 let currentIndex = 0;
 let startTime = 0;
+let quizInProgress = false;
 const answers = {};
+window.addEventListener("beforeunload", function (event) {
+    if (quizInProgress) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
+});
 
 async function loadQuiz() {
     const response = await fetch("/api/quizzes/" + quizId);
@@ -85,6 +92,7 @@ async function submitQuiz() {
         message.textContent = result.error;
         return;
     }
+    quizInProgress = false;
     result.player_name = playerName;
     sessionStorage.setItem("result", JSON.stringify(result));
     window.location.href = "/result";
@@ -100,6 +108,7 @@ startForm.addEventListener("submit", function (event) {
     message.textContent = "";
     startForm.hidden = true;
     questionBox.hidden = false;
+    quizInProgress = true;
     startTime = Date.now();
     showQuestion();
 });
