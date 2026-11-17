@@ -108,6 +108,55 @@ Example body for submitting answers (keys are question ids):
 
 Errors look like `{"error": "Quiz not found"}`.
 
+
+
+## Importing a quiz from a file
+
+Instead of adding questions one by one through the API, load a whole quiz
+from a JSON file with one command:
+
+```
+flask import-quiz quiz.json
+```
+
+### File format
+
+```json
+{
+  "title": "Quiz title (required)",
+  "description": "Optional description",
+  "category": "Optional category — default: General",
+  "difficulty": "easy | medium | hard — default: easy",
+  "questions": [
+    {
+      "text": "Question text",
+      "option_a": "First option",
+      "option_b": "Second option",
+      "option_c": "Third option",
+      "option_d": "Fourth option",
+      "correct_option": "A | B | C | D"
+    }
+  ]
+}
+```
+
+An example file is at `tests/fixtures/valid_quiz.json`.
+
+### What you see on success
+
+```
+Imported 'Python Basics' with 2 question(s) (id=4).
+```
+
+### What you see on failure
+
+The file is fully checked before anything is saved. If one question is
+invalid, nothing is written to the database:
+
+```
+Error: Question 2: correct_option must be A, B, C or D
+```
+
 ## Troubleshooting
 
 **Port 5000 is already in use**
