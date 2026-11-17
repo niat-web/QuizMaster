@@ -1,4 +1,6 @@
-def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
+def create_quiz(
+    client, title="Test Quiz", difficulty="easy", category="General"
+):
     response = client.post("/api/quizzes", json={
         "title": title,
         "difficulty": difficulty,
@@ -91,7 +93,8 @@ def test_add_question_quiz_not_found(client):
 def test_submit_quiz_scores_answers(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id, "B")
-    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+    quiz = client.get(f"/api/quizzes/{quiz_id}").get_json()
+    question_id = quiz["questions"][0]["id"]
 
     response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
         "player_name": "Asha",
@@ -108,7 +111,9 @@ def test_submit_quiz_scores_answers(client):
 def test_submit_quiz_missing_player_name(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id)
-    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={"answers": {}})
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "answers": {},
+    })
     assert response.status_code == 400
 
 
@@ -123,7 +128,8 @@ def test_submit_quiz_not_found(client):
 def test_leaderboard_is_sorted_and_limited(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id, "B")
-    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+    quiz = client.get(f"/api/quizzes/{quiz_id}").get_json()
+    question_id = quiz["questions"][0]["id"]
     for i in range(12):
         # Even numbered players answer correctly
         answer = "B" if i % 2 == 0 else "A"
@@ -142,7 +148,8 @@ def test_leaderboard_is_sorted_and_limited(client):
 def test_stats(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id, "B")
-    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+    quiz = client.get(f"/api/quizzes/{quiz_id}").get_json()
+    question_id = quiz["questions"][0]["id"]
     client.post(f"/api/quizzes/{quiz_id}/submit", json={
         "player_name": "Asha",
         "answers": {str(question_id): "B"},
