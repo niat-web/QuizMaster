@@ -126,3 +126,17 @@ td {
 [hidden] {
     display: none !important;
 }
+.answer-group {
+    border: none;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+.answer-group legend {
+    display: block;
+    width: 100%;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
