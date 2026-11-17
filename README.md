@@ -86,6 +86,17 @@ The tests use an in-memory SQLite database, so your real data is not touched.
 
 All endpoints are under `/api` and use JSON.
 
+Interactive API documentation is available at `http://127.0.0.1:5000/api/docs`.
+The machine-readable OpenAPI 3 specification is served at
+`http://127.0.0.1:5000/api/openapi.json`. The docs page uses Swagger UI, where
+you can inspect schemas and use **Try it out** to send requests to the running
+app.
+
+The OpenAPI description lives in `app/openapi.py`. When adding or changing an
+API route in `app/routes.py`, update the matching path, request/response
+schemas, examples, and error responses in that module. Keep error codes and
+examples aligned with the route's actual behavior, then run `pytest`.
+
 | Method | Endpoint                        | Description                                  |
 |--------|---------------------------------|----------------------------------------------|
 | GET    | /api/quizzes                    | List quizzes. Optional `category` and `difficulty` filters |

@@ -1,3 +1,19 @@
+def test_openapi_spec_is_served_as_json(client):
+    response = client.get("/api/openapi.json")
+    assert response.status_code == 200
+    assert response.is_json
+    spec = response.get_json()
+    assert spec["openapi"].startswith("3.")
+    assert "/api/quizzes" in spec["paths"]
+    assert "/api/stats" in spec["paths"]
+
+
+def test_api_docs_page_is_available(client):
+    response = client.get("/api/docs")
+    assert response.status_code == 200
+    assert b"SwaggerUIBundle" in response.data
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
