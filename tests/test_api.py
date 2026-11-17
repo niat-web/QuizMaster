@@ -152,3 +152,30 @@ def test_stats(client):
     assert stats["total_quizzes"] == 1
     assert stats["total_attempts"] == 1
     assert stats["quizzes"][0]["average_score"] == 1
+
+    def test_submit_quiz_time_at_maximum(client):  
+        quiz_id = create_quiz(client)  
+        add_question(client, quiz_id, "B")  
+        question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]  
+  
+        response = client.post(f"/api/quizzes/{quiz_id}/submit", json={  
+            "player_name": "Asha",  
+            "answers": {str(question_id): "B"},  
+            "time_taken_seconds": 86400,  
+        })  
+        assert response.status_code == 200  
+        assert response.get_json()["time_taken_seconds"] == 86400  
+    
+    
+    def test_submit_quiz_time_above_maximum(client):  
+        quiz_id = create_quiz(client)  
+        add_question(client, quiz_id, "B")  
+        question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]  
+    
+        response = client.post(f"/api/quizzes/{quiz_id}/submit", json={  
+            "player_name": "Asha",  
+            "answers": {str(question_id): "B"},  
+            "time_taken_seconds": 86401,  
+        })  
+        assert response.status_code == 400  
+        assert "error" in response.get_json()

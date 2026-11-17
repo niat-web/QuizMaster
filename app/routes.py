@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false
 from flask import Blueprint, jsonify, render_template, request
 
 from app import db
@@ -8,6 +9,7 @@ pages = Blueprint("pages", __name__)
 
 DIFFICULTIES = ["easy", "medium", "hard"]
 OPTIONS = ["A", "B", "C", "D"]
+MAX_TIME_TAKEN_SECONDS = 86400  # 24 hours; longer attempts are unrealistic
 
 
 def error(message, status):
@@ -131,9 +133,12 @@ def submit_quiz(quiz_id):
         return error("Player name is required", 400)
     if not isinstance(answers, dict):
         return error("Answers must be an object like {\"1\": \"A\"}", 400)
-    if not isinstance(time_taken, int) or time_taken < 0:
-        return error("time_taken_seconds must be a positive number", 400)
-
+    if not isinstance(time_taken, int) or time_taken < 0:  
+        return error("time_taken_seconds must be a positive number", 400)  
+    if time_taken > MAX_TIME_TAKEN_SECONDS:  
+        return error(  
+            f"time_taken_seconds must be at most {MAX_TIME_TAKEN_SECONDS}", 400  
+        )
     # Answers are keyed by question id; unanswered questions count as wrong
     score = 0
     for question in quiz.questions:
