@@ -126,3 +126,29 @@ td {
 [hidden] {
     display: none !important;
 }
+
+.highlighted-card,
+.card.highlighted {
+    background: white;
+    border: 2px solid #2c5282;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(44, 82, 130, 0.15);
+}
+
+.highlighted-card h2,
+.card.highlighted h2 {
+    margin-top: 8px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #2c5282;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 4px;
+    text-transform: uppercase;
+}

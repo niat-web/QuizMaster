@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
@@ -152,3 +155,74 @@ def test_stats(client):
     assert stats["total_quizzes"] == 1
     assert stats["total_attempts"] == 1
     assert stats["quizzes"][0]["average_score"] == 1
+
+
+def test_quiz_of_the_day_empty_db(client):
+    response = client.get("/api/quiz-of-the-day")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
+def test_quiz_of_the_day_same_day(client):
+    create_quiz(client, "Quiz 1")
+    create_quiz(client, "Quiz 2")
+    res1 = client.get("/api/quiz-of-the-day")
+    res2 = client.get("/api/quiz-of-the-day")
+    assert res1.status_code == 200
+    assert res2.status_code == 200
+    assert res1.get_json()["id"] == res2.get_json()["id"]
+
+
+def test_quiz_of_the_day_changes_next_day(client, monkeypatch):
+    create_quiz(client, "Quiz 1")
+    create_quiz(client, "Quiz 2")
+
+    today = date(2026, 11, 17)
+    tomorrow = today + timedelta(days=1)
+
+    monkeypatch.setattr("app.routes.get_today", lambda: today)
+    res_today = client.get("/api/quiz-of-the-day")
+    assert res_today.status_code == 200
+
+    monkeypatch.setattr("app.routes.get_today", lambda: tomorrow)
+    res_tomorrow = client.get("/api/quiz-of-the-day")
+    assert res_tomorrow.status_code == 200
+
+    assert res_today.get_json()["id"] != res_tomorrow.get_json()["id"]
+
+
+def test_quiz_of_the_day_single_quiz(client, monkeypatch):
+    quiz_id = create_quiz(client, "Only Quiz")
+    today = date(2026, 11, 17)
+    tomorrow = today + timedelta(days=1)
+
+    monkeypatch.setattr("app.routes.get_today", lambda: today)
+    res1 = client.get("/api/quiz-of-the-day")
+    assert res1.status_code == 200
+    assert res1.get_json()["id"] == quiz_id
+
+    monkeypatch.setattr("app.routes.get_today", lambda: tomorrow)
+    res2 = client.get("/api/quiz-of-the-day")
+    assert res2.status_code == 200
+    assert res2.get_json()["id"] == quiz_id
+
+
+def test_quiz_of_the_day_fields(client):
+    quiz_id = create_quiz(client, title="Daily Challenge", difficulty="hard", category="Trivia")
+    add_question(client, quiz_id)
+    res = client.get("/api/quiz-of-the-day")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["id"] == quiz_id
+    assert data["title"] == "Daily Challenge"
+    assert data["difficulty"] == "hard"
+    assert data["category"] == "Trivia"
+    assert data["question_count"] == 1
+    assert "created_at" in data
+
+
+def test_home_page_structure(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert b'id="quiz-of-the-day"' in response.data
+    assert b'id="quiz-list"' in response.data

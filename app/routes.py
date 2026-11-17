@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, jsonify, render_template, request
 
 from app import db
@@ -12,6 +14,10 @@ OPTIONS = ["A", "B", "C", "D"]
 
 def error(message, status):
     return jsonify({"error": message}), status
+
+
+def get_today():
+    return date.today()
 
 
 def get_text(data, field):
@@ -53,6 +59,17 @@ def list_quizzes():
         query = query.filter_by(difficulty=difficulty)
     quizzes = query.order_by(Quiz.id).all()
     return jsonify([quiz.to_dict() for quiz in quizzes])
+
+
+@api.route("/quiz-of-the-day")
+def quiz_of_the_day():
+    quizzes = Quiz.query.order_by(Quiz.id).all()
+    if not quizzes:
+        return error("Quiz not found", 404)
+    today = get_today()
+    day_num = today.toordinal() if hasattr(today, "toordinal") else int(today)
+    quiz = quizzes[day_num % len(quizzes)]
+    return jsonify(quiz.to_dict())
 
 
 @api.route("/quizzes/<int:quiz_id>")
