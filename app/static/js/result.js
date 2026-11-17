@@ -1,4 +1,5 @@
 const message = document.getElementById("message");
+const button = document.getElementById("print-button")
 const saved = sessionStorage.getItem("result");
 
 if (saved === null) {
@@ -14,4 +15,8 @@ if (saved === null) {
         "Time taken: " + result.time_taken_seconds + " seconds";
     document.getElementById("leaderboard-link").href = "/leaderboard?quiz=" + result.quiz_id;
     document.getElementById("result-box").hidden = false;
+
+    button.addEventListener("click" ,()=>{
+        window.print()
+    });
 }
