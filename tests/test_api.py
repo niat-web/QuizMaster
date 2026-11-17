@@ -88,6 +88,48 @@ def test_add_question_quiz_not_found(client):
     assert response.status_code == 404
 
 
+def test_delete_question(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    add_question(client, quiz_id, correct_option="A")
+    questions = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"]
+
+    response = client.delete(
+        f"/api/quizzes/{quiz_id}/questions/{questions[0]['id']}"
+    )
+    assert response.status_code == 200
+    assert response.get_json() == {"message": "Question deleted"}
+
+    remaining = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"]
+    assert len(remaining) == 1
+    assert remaining[0]["id"] == questions[1]["id"]
+
+
+def test_delete_question_quiz_not_found(client):
+    response = client.delete("/api/quizzes/999/questions/1")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
+def test_delete_question_not_found(client):
+    quiz_id = create_quiz(client)
+    response = client.delete(f"/api/quizzes/{quiz_id}/questions/999")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Question not found"}
+
+
+def test_delete_question_from_different_quiz(client):
+    quiz_id = create_quiz(client)
+    other_quiz_id = create_quiz(client, "Another Quiz")
+    question = add_question(client, other_quiz_id).get_json()
+
+    response = client.delete(
+        f"/api/quizzes/{quiz_id}/questions/{question['id']}"
+    )
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Question not found"}
+
+
 def test_submit_quiz_scores_answers(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id, "B")

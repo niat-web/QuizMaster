@@ -86,15 +86,16 @@ The tests use an in-memory SQLite database, so your real data is not touched.
 
 All endpoints are under `/api` and use JSON.
 
-| Method | Endpoint                        | Description                                  |
-|--------|---------------------------------|----------------------------------------------|
-| GET    | /api/quizzes                    | List quizzes. Optional `category` and `difficulty` filters |
-| GET    | /api/quizzes/<id>               | One quiz with its questions (no answers)     |
-| POST   | /api/quizzes                    | Create a quiz                                |
-| POST   | /api/quizzes/<id>/questions     | Add a question to a quiz                     |
-| POST   | /api/quizzes/<id>/submit        | Submit answers and get the result            |
-| GET    | /api/quizzes/<id>/leaderboard   | Top 10 attempts for a quiz                   |
-| GET    | /api/stats                      | Total quizzes, total attempts, average score per quiz |
+| Method | Endpoint                                   | Description                                                  |
+|--------|--------------------------------------------|--------------------------------------------------------------|
+| GET    | /api/quizzes                               | List quizzes. Optional `category` and `difficulty` filters   |
+| GET    | /api/quizzes/<id>                          | One quiz with its questions (no answers)                     |
+| POST   | /api/quizzes                               | Create a quiz                                                |
+| POST   | /api/quizzes/<id>/questions                | Add a question to a quiz                                     |
+| DELETE | /api/quizzes/<id>/questions/<question_id>  | Delete a question from a quiz                                |
+| POST   | /api/quizzes/<id>/submit                   | Submit answers and get the result                            |
+| GET    | /api/quizzes/<id>/leaderboard              | Top 10 attempts for a quiz                                   |
+| GET    | /api/stats                                 | Total quizzes, total attempts, average score per quiz        |
 
 Example body for submitting answers (keys are question ids):
 
