@@ -134,6 +134,11 @@ def submit_quiz(quiz_id):
     if not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
+    # Validate that every submitted answer is A, B, C, or D
+    for answer in answers.values():
+        if answer not in OPTIONS:
+            return error("Answers must be A, B, C or D", 400)
+
     # Answers are keyed by question id; unanswered questions count as wrong
     score = 0
     for question in quiz.questions:
