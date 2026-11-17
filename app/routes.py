@@ -8,6 +8,7 @@ pages = Blueprint("pages", __name__)
 
 DIFFICULTIES = ["easy", "medium", "hard"]
 OPTIONS = ["A", "B", "C", "D"]
+MAX_TIME_TAKEN_SECONDS = 3600  # 1 hour
 
 
 def error(message, status):
@@ -133,6 +134,11 @@ def submit_quiz(quiz_id):
         return error("Answers must be an object like {\"1\": \"A\"}", 400)
     if not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
+    if time_taken > MAX_TIME_TAKEN_SECONDS:
+        return error(
+            f"time_taken_seconds must not be more than {MAX_TIME_TAKEN_SECONDS}",
+            400,
+        )
 
     # Answers are keyed by question id; unanswered questions count as wrong
     score = 0

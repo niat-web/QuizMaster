@@ -1,3 +1,6 @@
+from app.routes import MAX_TIME_TAKEN_SECONDS
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
@@ -110,6 +113,34 @@ def test_submit_quiz_missing_player_name(client):
     add_question(client, quiz_id)
     response = client.post(f"/api/quizzes/{quiz_id}/submit", json={"answers": {}})
     assert response.status_code == 400
+
+
+def submit_with_time(client, time_taken):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    return client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {},
+        "time_taken_seconds": time_taken,
+    })
+
+
+def test_submit_quiz_accepts_maximum_time(client):
+    response = submit_with_time(client, MAX_TIME_TAKEN_SECONDS)
+    assert response.status_code == 200
+    assert response.get_json()["time_taken_seconds"] == MAX_TIME_TAKEN_SECONDS
+
+
+def test_submit_quiz_rejects_time_just_above_maximum(client):
+    response = submit_with_time(client, MAX_TIME_TAKEN_SECONDS + 1)
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_submit_quiz_rejects_huge_time(client):
+    response = submit_with_time(client, 99999999999)
+    assert response.status_code == 400
+    assert "error" in response.get_json()
 
 
 def test_submit_quiz_not_found(client):
