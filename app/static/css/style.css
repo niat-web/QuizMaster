@@ -83,6 +83,7 @@ button,
 
 button:disabled {
     background: #a0aec0;
+    color: #1a202c;
     cursor: not-allowed;
 }
 
@@ -125,4 +126,20 @@ td {
 
 [hidden] {
     display: none !important;
+}
+/* Add base styling and spacing for the dynamically generated option wrappers (labels or divs) */
+#options > * {
+    border: 2px solid transparent; /* Prevents layout jump when border appears */
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: block;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Highlight the option wrapper when the radio button inside it is selected */
+#options > *:has(input[type="radio"]:checked) {
+    background-color: #e0f2fe; /* Light blue background */
+    border-color: #0284c7;     /* Dark blue border */
 }
