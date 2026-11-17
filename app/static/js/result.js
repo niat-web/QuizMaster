@@ -15,3 +15,9 @@ if (saved === null) {
     document.getElementById("leaderboard-link").href = "/leaderboard?quiz=" + result.quiz_id;
     document.getElementById("result-box").hidden = false;
 }
+const printBtn = document.getElementById("print-btn");
+if (printBtn) {
+    printBtn.addEventListener("click", () => {
+        window.print();
+    });
+}
