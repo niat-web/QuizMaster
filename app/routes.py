@@ -2,24 +2,14 @@ from flask import Blueprint, jsonify, render_template, request
 
 from app import db
 from app.models import Attempt, Question, Quiz
+from app.validators import get_text, validate_question, validate_quiz
 
 api = Blueprint("api", __name__, url_prefix="/api")
 pages = Blueprint("pages", __name__)
 
-DIFFICULTIES = ["easy", "medium", "hard"]
-OPTIONS = ["A", "B", "C", "D"]
-
 
 def error(message, status):
     return jsonify({"error": message}), status
-
-
-def get_text(data, field):
-    # Returns the field as a trimmed string, or "" if it is missing
-    value = data.get(field)
-    if not isinstance(value, str):
-        return ""
-    return value.strip()
 
 
 @pages.route("/")
@@ -68,18 +58,15 @@ def get_quiz(quiz_id):
 @api.route("/quizzes", methods=["POST"])
 def create_quiz():
     data = request.get_json(silent=True) or {}
-    title = get_text(data, "title")
-    difficulty = get_text(data, "difficulty") or "easy"
-    if not title:
-        return error("Title is required", 400)
-    if difficulty not in DIFFICULTIES:
-        return error("Difficulty must be easy, medium or hard", 400)
+    errors = validate_quiz(data)
+    if errors:
+        return error(errors[0], 400)
 
     quiz = Quiz(
-        title=title,
+        title=get_text(data, "title"),
         description=get_text(data, "description"),
         category=get_text(data, "category") or "General",
-        difficulty=difficulty,
+        difficulty=get_text(data, "difficulty") or "easy",
     )
     db.session.add(quiz)
     db.session.commit()
@@ -93,22 +80,19 @@ def add_question(quiz_id):
         return error("Quiz not found", 404)
 
     data = request.get_json(silent=True) or {}
-    text = get_text(data, "text")
-    options = [get_text(data, "option_" + letter) for letter in "abcd"]
-    correct_option = get_text(data, "correct_option")
-    if not text or "" in options:
-        return error("Question text and all 4 options are required", 400)
-    if correct_option not in OPTIONS:
-        return error("correct_option must be A, B, C or D", 400)
+    errors = validate_question(data)
+    if errors:
+        return error(errors[0], 400)
 
+    options = [get_text(data, "option_" + letter) for letter in "abcd"]
     question = Question(
         quiz_id=quiz.id,
-        text=text,
+        text=get_text(data, "text"),
         option_a=options[0],
         option_b=options[1],
         option_c=options[2],
         option_d=options[3],
-        correct_option=correct_option,
+        correct_option=get_text(data, "correct_option"),
     )
     db.session.add(question)
     db.session.commit()
@@ -134,7 +118,6 @@ def submit_quiz(quiz_id):
     if not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
-    # Answers are keyed by question id; unanswered questions count as wrong
     score = 0
     for question in quiz.questions:
         if answers.get(str(question.id)) == question.correct_option:

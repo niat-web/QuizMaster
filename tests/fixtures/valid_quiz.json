@@ -1,0 +1,24 @@
+{
+  "title": "Python Basics",
+  "description": "Ten questions on Python fundamentals.",
+  "category": "Programming",
+  "difficulty": "easy",
+  "questions": [
+    {
+      "text": "Which keyword defines a function in Python?",
+      "option_a": "func",
+      "option_b": "def",
+      "option_c": "function",
+      "option_d": "define",
+      "correct_option": "B"
+    },
+    {
+      "text": "What does the print() function do?",
+      "option_a": "Reads input",
+      "option_b": "Returns a value",
+      "option_c": "Shows output on screen",
+      "option_d": "Creates a variable",
+      "correct_option": "C"
+    }
+  ]
+}

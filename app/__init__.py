@@ -24,6 +24,9 @@ def create_app(test_config=None):
     app.register_blueprint(api)
     app.register_blueprint(pages)
 
+    from app.commands import import_quiz_command
+    app.cli.add_command(import_quiz_command)
+
     with app.app_context():
         from app.seed import seed_data
         db.create_all()
