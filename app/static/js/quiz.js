@@ -69,26 +69,63 @@ function showQuestion() {
     submitButton.hidden = !isLast;
 }
 
+
 async function submitQuiz() {
     const seconds = Math.round((Date.now() - startTime) / 1000);
-    const response = await fetch("/api/quizzes/" + quizId + "/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            player_name: playerName,
-            answers: answers,
-            time_taken_seconds: seconds,
-        }),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-        message.textContent = result.error;
-        return;
+
+    // Prevent multiple submissions
+    submitButton.disabled = true;
+    message.textContent = "";
+
+    try {
+        const response = await fetch("/api/quizzes/" + quizId + "/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                player_name: playerName,
+                answers: answers,
+                time_taken_seconds: seconds,
+            }),
+        });
+
+        // Safely parse the server response
+        let result;
+
+        try {
+            result = await response.json();
+        } catch (error) {
+            throw new Error(
+                "Server returned an invalid response. Please try again."
+            );
+        }
+
+        // Handle unsuccessful HTTP responses
+        if (!response.ok) {
+            throw new Error(
+                result.error || "Could not submit your answers. Please try again."
+            );
+        }
+
+        // Submission successful
+        result.player_name = playerName;
+
+        sessionStorage.setItem("result", JSON.stringify(result));
+
+        window.location.href = "/result";
+
+    } catch (error) {
+        // Show a readable error message
+        message.textContent =
+            error.message === "Failed to fetch"
+                ? "Could not submit your answers. Check your connection and try again."
+                : error.message || "Something went wrong. Please try again.";
+
+    } finally {
+        // Re-enable the button if the page hasn't navigated away
+        submitButton.disabled = false;
     }
-    result.player_name = playerName;
-    sessionStorage.setItem("result", JSON.stringify(result));
-    window.location.href = "/result";
 }
+
 
 startForm.addEventListener("submit", function (event) {
     event.preventDefault();
