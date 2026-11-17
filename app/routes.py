@@ -158,7 +158,7 @@ def submit_quiz(quiz_id):
         "correct": score,
         "wrong": total - score,
         "time_taken_seconds": time_taken,
-    })
+    }), 201
 
 
 @api.route("/quizzes/<int:quiz_id>/leaderboard")

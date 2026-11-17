@@ -98,7 +98,7 @@ def test_submit_quiz_scores_answers(client):
         "answers": {str(question_id): "B"},
         "time_taken_seconds": 12,
     })
-    assert response.status_code == 200
+    assert response.status_code == 201
     result = response.get_json()
     assert result["score"] == 1
     assert result["wrong"] == 0
