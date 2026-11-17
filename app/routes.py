@@ -129,6 +129,18 @@ def submit_quiz(quiz_id):
     time_taken = data.get("time_taken_seconds", 0)
     if not player_name:
         return error("Player name is required", 400)
+    if not isinstance(answers, dict):
+        return error("Answers must be an object like {\"1\": \"A\"}", 400)
+    if not isinstance(time_taken, int) or time_taken < 0:
+        return error("time_taken_seconds must be a positive number", 400)
+
+    # Validate that every submitted answer is A, B, C, or D
+    for answer in answers.values():
+        if answer not in OPTIONS:
+            return error("Answers must be A, B, C or D", 400)
+
+    # Answers are keyed by question id; unanswered questions count as wrong
+    score = 0
     def test_submit_quiz_not_found(client):
     response = client.post("/api/quizzes/999/submit", json={
         "player_name": "Asha",
