@@ -117,3 +117,13 @@ nextButton.addEventListener("click", function () {
 submitButton.addEventListener("click", submitQuiz);
 
 loadQuiz();
+
+document.addEventListener("keydown", (event) => {
+    if (!questionBox.hidden && ["1", "2", "3", "4"].includes(event.key)) {
+        const index = parseInt(event.key) - 1;
+        const options = optionsDiv.querySelectorAll("button, input[type='radio'], label");
+        if (options[index]) {
+            options[index].click();
+        }
+    }
+});
