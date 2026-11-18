@@ -112,6 +112,21 @@ def test_submit_quiz_missing_player_name(client):
     assert response.status_code == 400
 
 
+def test_submit_quiz_invalid_answer_letter(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(question_id): "Z"},
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Answers must be A, B, C or D"}
+    # No attempt should be saved for a rejected submission
+    assert client.get("/api/stats").get_json()["total_attempts"] == 0
+
+
 def test_submit_quiz_not_found(client):
     response = client.post("/api/quizzes/999/submit", json={
         "player_name": "Asha",
