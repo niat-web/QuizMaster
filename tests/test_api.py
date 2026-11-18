@@ -139,6 +139,24 @@ def test_leaderboard_is_sorted_and_limited(client):
     assert entries[-1]["score"] == 0
 
 
+def test_leaderboard_ties_keep_submission_order(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "B")
+    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+    names = ["Asha", "Ravi", "Meera", "Kabir"]
+    # Everyone has the same score and time; only the submit order differs
+    for name in names:
+        client.post(f"/api/quizzes/{quiz_id}/submit", json={
+            "player_name": name,
+            "answers": {str(question_id): "B"},
+            "time_taken_seconds": 30,
+        })
+
+    for _ in range(3):
+        entries = client.get(f"/api/quizzes/{quiz_id}/leaderboard").get_json()
+        assert [entry["player_name"] for entry in entries] == names
+
+
 def test_stats(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id, "B")
