@@ -42,6 +42,59 @@ def leaderboard_page():
     return render_template("leaderboard.html")
 
 
+@api.route("/quizzes/mixed", methods=["POST"])
+def create_mixed_quiz():
+    data = request.get_json(silent=True) or {}
+    category = get_text(data, "category")
+    difficulty = get_text(data, "difficulty")
+
+    query = Question.query.join(Quiz)
+    if category:
+        query = query.filter(Quiz.category == category)
+    if difficulty:
+        query = query.filter(Quiz.difficulty == difficulty)
+
+    questions = query.all()
+    if not questions:
+        return error("No questions found matching criteria", 400)
+
+    import random
+    count = min(10, len(questions))
+    selected_questions = random.sample(questions, count)
+
+    cat_label = category if category else "Mixed"
+    diff_label = f" ({difficulty})" if difficulty else ""
+    title = f"Random {cat_label} Quiz{diff_label}"
+    description = f"A dynamically generated quiz with {count} random questions."
+
+    quiz = Quiz(
+        title=title,
+        description=description,
+        category=cat_label,
+        difficulty=difficulty if difficulty else "mixed",
+    )
+    db.session.add(quiz)
+    db.session.flush()
+
+    for q in selected_questions:
+        new_q = Question(
+            quiz_id=quiz.id,
+            text=q.text,
+            option_a=q.option_a,
+            option_b=q.option_b,
+            option_c=q.option_c,
+            option_d=q.option_d,
+            correct_option=q.correct_option,
+        )
+        db.session.add(new_q)
+
+    db.session.commit()
+
+    resp_data = quiz.to_dict()
+    resp_data["questions"] = [q.to_dict() for q in quiz.questions]
+    return jsonify(resp_data), 201
+
+
 @api.route("/quizzes")
 def list_quizzes():
     query = Quiz.query
