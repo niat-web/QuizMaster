@@ -86,6 +86,57 @@ def test_add_question_wrong_option_letter(client):
 def test_add_question_quiz_not_found(client):
     response = add_question(client, 999)
     assert response.status_code == 404
+def test_add_question_missing_text(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "option_a": "1",
+        "option_b": "2",
+        "option_c": "3",
+        "option_d": "4",
+        "correct_option": "B",
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Question text and all 4 options are required"}
+
+
+def test_add_question_empty_option(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "text": "What is 1 + 1?",
+        "option_a": "1",
+        "option_b": "   ",
+        "option_c": "3",
+        "option_d": "4",
+        "correct_option": "B",
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Question text and all 4 options are required"}
+
+
+def test_add_question_missing_option_field(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "text": "What is 1 + 1?",
+        "option_a": "1",
+        "option_b": "2",
+        "option_c": "3",
+        "correct_option": "B",
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Question text and all 4 options are required"}
+
+
+def test_add_question_missing_correct_option(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "text": "What is 1 + 1?",
+        "option_a": "1",
+        "option_b": "2",
+        "option_c": "3",
+        "option_d": "4",
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "correct_option must be A, B, C or D"}
 
 
 def test_submit_quiz_scores_answers(client):
