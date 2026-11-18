@@ -131,6 +131,8 @@ def submit_quiz(quiz_id):
         return error("Player name is required", 400)
     if not isinstance(answers, dict):
         return error("Answers must be an object like {\"1\": \"A\"}", 400)
+    if any(answer not in OPTIONS for answer in answers.values()):
+        return error("Answers must be A, B, C or D", 400)
     if not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
