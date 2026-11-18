@@ -22,6 +22,15 @@ def get_text(data, field):
     return value.strip()
 
 
+@api.before_request
+def require_json_body():
+    # Runs before every API route, so each POST endpoint does not repeat it
+    if request.method == "POST":
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return error("Request body must be valid JSON", 400)
+
+
 @pages.route("/")
 def index():
     return render_template("index.html")
