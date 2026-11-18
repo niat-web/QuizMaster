@@ -1,3 +1,6 @@
+import pytest
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
@@ -44,6 +47,29 @@ def test_create_quiz_wrong_difficulty(client):
         "difficulty": "impossible",
     })
     assert response.status_code == 400
+
+
+@pytest.mark.parametrize("path", [
+    "/api/quizzes",
+    "/api/quizzes/{quiz_id}/questions",
+    "/api/quizzes/{quiz_id}/submit",
+])
+def test_post_endpoints_reject_invalid_json(client, path):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    response = client.post(
+        path.format(quiz_id=quiz_id),
+        data="hello",
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Request body must be valid JSON"}
+
+
+def test_create_quiz_empty_json_still_gives_field_error(client):
+    response = client.post("/api/quizzes", json={})
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Title is required"}
 
 
 def test_filter_quizzes_by_difficulty(client):
