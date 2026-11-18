@@ -70,6 +70,27 @@ def test_get_quiz_hides_correct_answers(client):
     assert "correct_option" not in questions[0]
 
 
+def test_get_quiz_returns_questions_in_order(client):
+    quiz_id = create_quiz(client)
+    added_ids = []
+    for text in ["First?", "Second?", "Third?"]:
+        response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+            "text": text,
+            "option_a": "1",
+            "option_b": "2",
+            "option_c": "3",
+            "option_d": "4",
+            "correct_option": "A",
+        })
+        added_ids.append(response.get_json()["id"])
+
+    questions = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"]
+    assert [question["id"] for question in questions] == added_ids
+    assert [question["text"] for question in questions] == [
+        "First?", "Second?", "Third?",
+    ]
+
+
 def test_add_question(client):
     quiz_id = create_quiz(client)
     response = add_question(client, quiz_id)
