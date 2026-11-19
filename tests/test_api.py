@@ -1,3 +1,6 @@
+from app import db
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
@@ -194,3 +197,85 @@ def test_stats(client):
     assert stats["total_quizzes"] == 1
     assert stats["total_attempts"] == 1
     assert stats["quizzes"][0]["average_score"] == 1
+
+
+def test_stats_multiple_quizzes(client):
+    quiz1 = create_quiz(client, "Quiz 1")
+    quiz2 = create_quiz(client, "Quiz 2")
+    add_question(client, quiz1, "A")
+    add_question(client, quiz2, "A")
+    q1_id = client.get(f"/api/quizzes/{quiz1}").get_json()["questions"][0]["id"]
+    client.post(f"/api/quizzes/{quiz1}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(q1_id): "A"},
+    })
+
+    stats = client.get("/api/stats").get_json()
+    assert stats["total_quizzes"] == 2
+    assert stats["total_attempts"] == 1
+    assert stats["quizzes"][0]["quiz_id"] == quiz1
+    assert stats["quizzes"][0]["attempts"] == 1
+    assert stats["quizzes"][0]["average_score"] == 1
+    assert stats["quizzes"][1]["quiz_id"] == quiz2
+    assert stats["quizzes"][1]["attempts"] == 0
+    assert stats["quizzes"][1]["average_score"] == 0
+
+
+def test_quiz_list_query_count(client):
+    for i in range(5):
+        quiz_id = create_quiz(client, f"Quiz {i}")
+        add_question(client, quiz_id)
+
+    from sqlalchemy import event
+    from sqlalchemy.engine import Engine
+    queries = []
+
+    def count_queries(conn, cursor, statement, parameters, context, executemany):
+        queries.append(statement)
+
+    event.listen(Engine, "before_cursor_execute", count_queries)
+    try:
+        response = client.get("/api/quizzes")
+        assert response.status_code == 200
+        assert len(response.get_json()) == 5
+        assert len(queries) == 1
+    finally:
+        event.remove(Engine, "before_cursor_execute", count_queries)
+
+
+def test_stats_query_count(client):
+    for i in range(5):
+        quiz_id = create_quiz(client, f"Quiz {i}")
+        add_question(client, quiz_id)
+        q_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+        client.post(f"/api/quizzes/{quiz_id}/submit", json={
+            "player_name": f"Player {i}",
+            "answers": {str(q_id): "B"},
+        })
+
+    from sqlalchemy import event
+    from sqlalchemy.engine import Engine
+    queries = []
+
+    def count_queries(conn, cursor, statement, parameters, context, executemany):
+        queries.append(statement)
+
+    event.listen(Engine, "before_cursor_execute", count_queries)
+    try:
+        response = client.get("/api/stats")
+        assert response.status_code == 200
+        assert len(response.get_json()["quizzes"]) == 5
+        assert len(queries) == 2
+    finally:
+        event.remove(Engine, "before_cursor_execute", count_queries)
+
+
+def test_models_have_foreign_key_indexes(app):
+    from sqlalchemy import inspect
+    with app.app_context():
+        inspector = inspect(db.engine)
+        question_indexes = inspector.get_indexes("question")
+        attempt_indexes = inspector.get_indexes("attempt")
+        assert any("quiz_id" in idx["column_names"] for idx in question_indexes)
+        assert any("quiz_id" in idx["column_names"] for idx in attempt_indexes)
+

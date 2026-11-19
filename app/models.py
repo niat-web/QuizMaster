@@ -18,21 +18,27 @@ class Quiz(db.Model):
     questions = db.relationship("Question", backref="quiz", lazy=True)
     attempts = db.relationship("Attempt", backref="quiz", lazy=True)
 
-    def to_dict(self):
+    def to_dict(self, question_count=None):
+        if question_count is None:
+            question_count = getattr(self, "question_count", None)
+        if question_count is None:
+            question_count = len(self.questions)
         return {
             "id": self.id,
             "title": self.title,
             "description": self.description,
             "category": self.category,
             "difficulty": self.difficulty,
-            "question_count": len(self.questions),
+            "question_count": question_count,
             "created_at": self.created_at.isoformat(),
         }
 
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
+    quiz_id = db.Column(
+        db.Integer, db.ForeignKey("quiz.id"), nullable=False, index=True
+    )
     text = db.Column(db.String(255), nullable=False)
     option_a = db.Column(db.String(100), nullable=False)
     option_b = db.Column(db.String(100), nullable=False)
@@ -54,7 +60,9 @@ class Question(db.Model):
 
 class Attempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
+    quiz_id = db.Column(
+        db.Integer, db.ForeignKey("quiz.id"), nullable=False, index=True
+    )
     player_name = db.Column(db.String(50), nullable=False)
     score = db.Column(db.Integer, nullable=False)
     total_questions = db.Column(db.Integer, nullable=False)
