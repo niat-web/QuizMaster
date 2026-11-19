@@ -77,12 +77,30 @@ def get_quiz(quiz_id):
 
 
 @api.route("/quizzes", methods=["POST"])
+@api.route("/quizzes", methods=["POST"])
 def create_quiz():
     data = request.get_json(silent=True) or {}
     title = get_text(data, "title")
+    description = get_text(data, "description")
+    category = get_text(data, "category") or "General"
     difficulty = get_text(data, "difficulty") or "easy"
+
+    description_limit = Quiz.description.property.columns[0].type.length
+    category_limit = Quiz.category.property.columns[0].type.length
+
     if not title:
         return error("Title is required", 400)
+
+    if len(description) > description_limit:
+        return error(
+            f"Description must be {description_limit} characters or fewer", 400
+        )
+
+    if len(category) > category_limit:
+        return error(
+            f"Category must be {category_limit} characters or fewer", 400
+        )
+
     if difficulty not in DIFFICULTIES:
         return error("Difficulty must be easy, medium or hard", 400)
 
@@ -92,14 +110,13 @@ def create_quiz():
 
     quiz = Quiz(
         title=title,
-        description=get_text(data, "description"),
-        category=get_text(data, "category") or "General",
+        description=description,
+        category=category,
         difficulty=difficulty,
     )
     db.session.add(quiz)
     db.session.commit()
     return jsonify(quiz.to_dict()), 201
-
 
 @api.route("/quizzes/<int:quiz_id>/questions", methods=["POST"])
 def add_question(quiz_id):
