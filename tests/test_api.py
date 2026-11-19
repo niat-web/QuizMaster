@@ -194,3 +194,26 @@ def test_stats(client):
     assert stats["total_quizzes"] == 1
     assert stats["total_attempts"] == 1
     assert stats["quizzes"][0]["average_score"] == 1
+
+
+def test_create_mixed_quiz(client):
+    quiz_id = create_quiz(client, title="Q1", difficulty="easy", category="Programming")
+    add_question(client, quiz_id, "B")
+
+    response = client.post("/api/quizzes/mixed", json={
+        "category": "Programming",
+        "difficulty": "easy"
+    })
+    assert response.status_code == 201
+    data = response.get_json()
+    assert "Random" in data["title"]
+    assert len(data["questions"]) == 1
+
+
+def test_create_mixed_quiz_not_found(client):
+    response = client.post("/api/quizzes/mixed", json={
+        "category": "NonExistent"
+    })
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+

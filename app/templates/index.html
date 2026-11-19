@@ -3,6 +3,35 @@
 
 {% block content %}
 <h1>Choose a quiz</h1>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>Generate Mixed Quiz</h2>
+    <p>Create a dynamic quiz made from random questions across categories and difficulties.</p>
+    <form id="mixed-quiz-form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 1rem;">
+        <div>
+            <label for="mixed-category" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Category</label>
+            <select id="mixed-category" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">All Categories</option>
+                <option value="Programming">Programming</option>
+                <option value="General">General</option>
+                <option value="Science">Science</option>
+            </select>
+        </div>
+        <div>
+            <label for="mixed-difficulty" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Difficulty</label>
+            <select id="mixed-difficulty" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">All Difficulties</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+        </div>
+        <div style="align-self: flex-end;">
+            <button type="submit" class="button">Create &amp; Start Mixed Quiz</button>
+        </div>
+    </form>
+</div>
+
 <p id="message"></p>
 <div id="quiz-list" class="quiz-grid"></div>
 {% endblock %}
