@@ -91,6 +91,8 @@ All endpoints are under `/api` and use JSON.
 | GET    | /api/quizzes                    | List quizzes. Optional `category` and `difficulty` filters |
 | GET    | /api/quizzes/<id>               | One quiz with its questions (no answers)     |
 | POST   | /api/quizzes                    | Create a quiz                                |
+| PUT    | /api/quizzes/<id>               | Update a quiz                                |
+| DELETE | /api/quizzes/<id>               | Delete a quiz                                |
 | POST   | /api/quizzes/<id>/questions     | Add a question to a quiz                     |
 | POST   | /api/quizzes/<id>/submit        | Submit answers and get the result            |
 | GET    | /api/quizzes/<id>/leaderboard   | Top 10 attempts for a quiz                   |
