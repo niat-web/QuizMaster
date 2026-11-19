@@ -46,6 +46,27 @@ def test_create_quiz_wrong_difficulty(client):
     assert response.status_code == 400
 
 
+def test_create_quiz_duplicate_title(client):
+    response1 = client.post("/api/quizzes", json={"title": "Geography"})
+    assert response1.status_code == 201
+
+    response2 = client.post("/api/quizzes", json={"title": "Geography"})
+    assert response2.status_code == 400
+    assert response2.get_json()["error"] == "A quiz with this title already exists"
+
+
+def test_create_quiz_duplicate_title_case_insensitive(client):
+    response1 = client.post("/api/quizzes", json={"title": "Science"})
+    assert response1.status_code == 201
+
+    response2 = client.post("/api/quizzes", json={"title": "science"})
+    assert response2.status_code == 400
+    assert response2.get_json()["error"] == "A quiz with this title already exists"
+
+    response3 = client.post("/api/quizzes", json={"title": "History"})
+    assert response3.status_code == 201
+
+
 def test_filter_quizzes_by_difficulty(client):
     create_quiz(client, "Easy One", "easy")
     create_quiz(client, "Hard One", "hard")
@@ -118,6 +139,27 @@ def test_submit_quiz_not_found(client):
         "answers": {},
     })
     assert response.status_code == 404
+
+
+def test_submit_quiz_rate_limit(client, app):
+    app.config["SUBMIT_RATE_LIMIT"] = "2 per minute"
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+    payload = {
+        "player_name": "Asha",
+        "answers": {str(question_id): "B"},
+    }
+
+    assert client.post(f"/api/quizzes/{quiz_id}/submit", json=payload).status_code == 200
+    assert client.post(f"/api/quizzes/{quiz_id}/submit", json=payload).status_code == 200
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json=payload)
+
+    assert response.status_code == 429
+    assert response.get_json() == {
+        "error": "Too many submissions. Please try again later."
+    }
+    assert response.headers["Retry-After"].isdigit()
 
 
 def test_leaderboard_is_sorted_and_limited(client):

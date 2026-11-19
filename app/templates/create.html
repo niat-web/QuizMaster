@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Create quiz{% endblock %}
+
+{% block content %}
+<h1>Create a quiz</h1>
+<p id="message"></p>
+
+<form id="quiz-form" class="card">
+    <label for="quiz-title">Title</label>
+    <input id="quiz-title" type="text" maxlength="100" required>
+
+    <label for="quiz-description">Description</label>
+    <input id="quiz-description" type="text" maxlength="200" required>
+
+    <label for="quiz-category">Category</label>
+    <input id="quiz-category" type="text" maxlength="50" required>
+
+    <label for="quiz-difficulty">Difficulty</label>
+    <select id="quiz-difficulty">
+        <option value="easy">easy</option>
+        <option value="medium">medium</option>
+        <option value="hard">hard</option>
+    </select>
+
+    <button type="submit">Create quiz</button>
+</form>
+
+<form id="question-form" class="card" hidden>
+    <h2>Add a question</h2>
+    <label for="question-text">Question</label>
+    <input id="question-text" type="text" required>
+
+    <label for="option-a">Option A</label>
+    <input id="option-a" type="text" required>
+    <label for="option-b">Option B</label>
+    <input id="option-b" type="text" required>
+    <label for="option-c">Option C</label>
+    <input id="option-c" type="text" required>
+    <label for="option-d">Option D</label>
+    <input id="option-d" type="text" required>
+
+    <label for="correct-option">Correct option</label>
+    <select id="correct-option">
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+    </select>
+
+    <div class="buttons">
+        <button type="submit">Add question</button>
+        <a class="button" href="{{ url_for('pages.index') }}">Done</a>
+    </div>
+    <p id="question-count"></p>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/create.js') }}"></script>
+{% endblock %}
