@@ -184,7 +184,10 @@ def leaderboard(quiz_id):
         return error("Quiz not found", 404)
     attempts = (
         Attempt.query.filter_by(quiz_id=quiz_id)
-        .order_by(Attempt.score.desc(), Attempt.time_taken_seconds)
+        # Attempt.id breaks ties: whoever finished first ranks higher
+        .order_by(
+            Attempt.score.desc(), Attempt.time_taken_seconds, Attempt.id
+        )
         .limit(10)
         .all()
     )
