@@ -8,17 +8,23 @@ pages = Blueprint("pages", __name__)
 
 DIFFICULTIES = ["easy", "medium", "hard"]
 OPTIONS = ["A", "B", "C", "D"]
-
+_MISSING = object()
 
 def error(message, status):
     return jsonify({"error": message}), status
 
 
+@api.errorhandler(TypeError)
+def handle_type_error(err):
+    return error(str(err), 400)
+
+
 def get_text(data, field):
-    # Returns the field as a trimmed string, or "" if it is missing
-    value = data.get(field)
+    value = data.get(field, _MISSING)
+    if value is _MISSING:
+        return None
     if not isinstance(value, str):
-        return ""
+        raise TypeError(f"{field} must be a string")
     return value.strip()
 
 
@@ -68,8 +74,14 @@ def get_quiz(quiz_id):
 @api.route("/quizzes", methods=["POST"])
 def create_quiz():
     data = request.get_json(silent=True) or {}
-    title = get_text(data, "title")
-    difficulty = get_text(data, "difficulty") or "easy"
+    try:
+        title = get_text(data, "title")
+        difficulty = get_text(data, "difficulty")
+        description = get_text(data, "description")
+        category = get_text(data, "category")
+    except TypeError as exc:
+        return error(str(exc), 400)
+    difficulty = difficulty or "easy"
     if not title:
         return error("Title is required", 400)
     if difficulty not in DIFFICULTIES:
@@ -77,8 +89,8 @@ def create_quiz():
 
     quiz = Quiz(
         title=title,
-        description=get_text(data, "description"),
-        category=get_text(data, "category") or "General",
+        description=description or "",
+        category=category or "General",
         difficulty=difficulty,
     )
     db.session.add(quiz)
@@ -93,10 +105,17 @@ def add_question(quiz_id):
         return error("Quiz not found", 404)
 
     data = request.get_json(silent=True) or {}
-    text = get_text(data, "text")
-    options = [get_text(data, "option_" + letter) for letter in "abcd"]
-    correct_option = get_text(data, "correct_option")
-    if not text or "" in options:
+    try:
+        text = get_text(data, "text")
+        options = [
+            get_text(data, "option_" + letter)
+            for letter in "abcd"
+        ]
+        correct_option = get_text(data, "correct_option")
+    except TypeError as exc:
+        return error(str(exc), 400)
+
+    if not text or any(option is None or not option for option in options):
         return error("Question text and all 4 options are required", 400)
     if correct_option not in OPTIONS:
         return error("correct_option must be A, B, C or D", 400)
@@ -124,7 +143,10 @@ def submit_quiz(quiz_id):
         return error("This quiz has no questions", 400)
 
     data = request.get_json(silent=True) or {}
-    player_name = get_text(data, "player_name")
+    try:
+        player_name = get_text(data, "player_name")
+    except TypeError as exc:
+        return error(str(exc), 400)
     answers = data.get("answers")
     time_taken = data.get("time_taken_seconds", 0)
     if not player_name:
