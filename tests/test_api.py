@@ -98,6 +98,51 @@ def test_add_question(client):
     assert response.get_json()["text"] == "What is 1 + 1?"
 
 
+def test_add_question_rejects_text_over_limit(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "text": "x" * 256,
+        "option_a": "1",
+        "option_b": "2",
+        "option_c": "3",
+        "option_d": "4",
+        "correct_option": "B",
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "text must be 255 characters or fewer"
+    }
+
+
+def test_add_question_rejects_option_over_limit(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "text": "What is 1 + 1?",
+        "option_a": "1",
+        "option_b": "2",
+        "option_c": "x" * 101,
+        "option_d": "4",
+        "correct_option": "B",
+    })
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "option_c must be 100 characters or fewer"
+    }
+
+
+def test_add_question_accepts_values_at_limits(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/questions", json={
+        "text": "x" * 255,
+        "option_a": "a" * 100,
+        "option_b": "b" * 100,
+        "option_c": "c" * 100,
+        "option_d": "d" * 100,
+        "correct_option": "B",
+    })
+    assert response.status_code == 201
+
+
 def test_add_question_wrong_option_letter(client):
     quiz_id = create_quiz(client)
     response = add_question(client, quiz_id, correct_option="E")

@@ -8,6 +8,8 @@ pages = Blueprint("pages", __name__)
 
 DIFFICULTIES = ["easy", "medium", "hard"]
 OPTIONS = ["A", "B", "C", "D"]
+QUESTION_TEXT_MAX_LENGTH = 255
+QUESTION_OPTION_MAX_LENGTH = 100
 
 
 def error(message, status):
@@ -113,6 +115,12 @@ def add_question(quiz_id):
     correct_option = get_text(data, "correct_option")
     if not text or "" in options:
         return error("Question text and all 4 options are required", 400)
+    if len(text) > QUESTION_TEXT_MAX_LENGTH:
+        return error("text must be 255 characters or fewer", 400)
+    for letter, option in zip("abcd", options):
+        if len(option) > QUESTION_OPTION_MAX_LENGTH:
+            field = "option_" + letter
+            return error(field + " must be 100 characters or fewer", 400)
     if correct_option not in OPTIONS:
         return error("correct_option must be A, B, C or D", 400)
 
