@@ -9,8 +9,13 @@ def app():
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite://",
         "LOAD_SEED_DATA": False,
+
+        # Use a high limit for normal tests
+        "SUBMIT_RATE_LIMIT": "100 per minute",
     })
+
     yield app
+
     with app.app_context():
         db.session.remove()
         db.drop_all()
