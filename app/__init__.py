@@ -15,12 +15,21 @@ limiter = Limiter(
     default_limits=[],
 )
 
+# Initialize rate limiter
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],
+)
+
 
 def create_app(test_config=None):
     app = Flask(__name__)
+
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
         "DATABASE_URL", "sqlite:///quizmaster.db"
     )
+
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["LOAD_SEED_DATA"] = True
     app.config["SUBMIT_RATE_LIMIT"] = os.environ.get(
         "SUBMIT_RATE_LIMIT", "10 per minute"
@@ -32,10 +41,27 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    # Initialize extensions
     db.init_app(app)
     limiter.init_app(app)
 
+    # Custom JSON response for rate limit errors
+    @app.errorhandler(429)
+    def ratelimit_error(error):
+        response = error.get_response()
+
+        response.set_data(
+            app.json.dumps({
+                "error": "Too many quiz submissions. Please try again later."
+            })
+        )
+
+        response.content_type = "application/json"
+
+        return response
+
     from app.routes import api, pages
+
     app.register_blueprint(api)
     app.register_blueprint(pages)
 
@@ -52,8 +78,10 @@ def create_app(test_config=None):
 
     with app.app_context():
         from app.seed import seed_data
+
         db.create_all()
-        if app.config["LOAD_SEED_DATA"]:
+
+        if app.config["LOAD_SEED_DATA"] and not app.config["TESTING"]:
             seed_data()
 
     return app

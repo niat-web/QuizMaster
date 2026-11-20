@@ -11,7 +11,9 @@ def app():
         "LOAD_SEED_DATA": False,
         "SUBMIT_RATE_LIMIT": "1000 per minute",
     })
+
     yield app
+
     with app.app_context():
         db.session.remove()
         db.drop_all()
