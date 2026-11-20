@@ -86,6 +86,16 @@ SAMPLE_QUIZZES = [
              "Volt", "Watt", "Ohm", "Ampere", "D"),
             ("Which part of the cell contains the DNA?",
              "Nucleus", "Membrane", "Cytoplasm", "Ribosome", "A"),
+            ("Which vitamin is produced in the human body when exposed to sunlight?",
+             "Vitamin A", "Vitamin B12", "Vitamin C", "Vitamin D", "D"),
+            ("What is the smallest unit of an element that retains its chemical properties?",
+             "Cell", "Atom", "Molecule", "Electron", "B"),
+            ("Which part of the human eye controls the amount of light entering it?",
+             "Retina", "Cornea", "Iris", "Lens", "C"),
+            ("What is the speed of light in a vacuum approximately?",
+             "300,000 km/s", "150,000 km/s", "30,000 km/s", "500,000 km/s", "A"),
+            ("Which blood cells help the body fight infections?",
+             "Red blood cells", "Platelets", "White blood cells", "Plasma", "C")
         ],
     },
 ]

@@ -9,9 +9,7 @@ def app():
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite://",
         "LOAD_SEED_DATA": False,
-
-        # Use a high limit for normal tests
-        "SUBMIT_RATE_LIMIT": "100 per minute",
+        "SUBMIT_RATE_LIMIT": "1000 per minute",
     })
 
     yield app

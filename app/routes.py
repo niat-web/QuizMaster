@@ -49,6 +49,17 @@ def result_page():
 def leaderboard_page():
     return render_template("leaderboard.html")
 
+@pages.app_errorhandler(404)
+def not_found(e):
+    if request.path.startswith("/api/"):
+        return error("Not found", 404)
+    return render_template("404.html"), 404
+
+
+@pages.route("/create")
+def create_page():
+    return render_template("create.html")
+
 
 # List all quizzes
 @api.route("/quizzes")
@@ -102,6 +113,10 @@ def create_quiz():
             "Difficulty must be easy, medium or hard",
             400,
         )
+
+    existing_quiz = Quiz.query.filter(db.func.lower(Quiz.title) == title.lower()).first()
+    if existing_quiz:
+        return error("A quiz with this title already exists", 400)
 
     quiz = Quiz(
         title=title,
@@ -165,9 +180,7 @@ def add_question(quiz_id):
 
 # Submit quiz with rate limiting
 @api.route("/quizzes/<int:quiz_id>/submit", methods=["POST"])
-@limiter.limit(
-    lambda: current_app.config["SUBMIT_RATE_LIMIT"]
-)
+@limiter.limit(lambda: current_app.config["SUBMIT_RATE_LIMIT"])
 def submit_quiz(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
 
