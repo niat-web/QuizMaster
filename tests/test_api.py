@@ -7,9 +7,9 @@ def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"
     return response.get_json()["id"]
 
 
-def add_question(client, quiz_id, correct_option="B"):
+def add_question(client, quiz_id, correct_option="B", text="What is 1 + 1?"):
     return client.post(f"/api/quizzes/{quiz_id}/questions", json={
-        "text": "What is 1 + 1?",
+        "text": text,
         "option_a": "1",
         "option_b": "2",
         "option_c": "3",
@@ -194,3 +194,40 @@ def test_stats(client):
     assert stats["total_quizzes"] == 1
     assert stats["total_attempts"] == 1
     assert stats["quizzes"][0]["average_score"] == 1
+
+
+def test_add_duplicate_question_same_quiz_returns_409(client):
+    quiz_id = create_quiz(client)
+
+    first = add_question(client, quiz_id)
+    assert first.status_code == 201
+
+    duplicate = add_question(client, quiz_id)
+    assert duplicate.status_code == 409
+    assert "error" in duplicate.get_json()
+
+    # Confirm only one question was saved
+    quiz = client.get(f"/api/quizzes/{quiz_id}").get_json()
+    assert len(quiz["questions"]) == 1
+
+
+def test_add_duplicate_question_ignores_case_and_whitespace(client):
+    quiz_id = create_quiz(client)
+
+    first = add_question(client, quiz_id, text="What is 1 + 1?")
+    assert first.status_code == 201
+
+    duplicate = add_question(client, quiz_id, text="  what   is   1 + 1?  ")
+    assert duplicate.status_code == 409
+    assert "error" in duplicate.get_json()
+
+
+def test_add_same_question_to_different_quiz_allowed(client):
+    quiz_1 = create_quiz(client, title="Quiz 1")
+    quiz_2 = create_quiz(client, title="Quiz 2")
+
+    res_1 = add_question(client, quiz_1)
+    res_2 = add_question(client, quiz_2)
+
+    assert res_1.status_code == 201
+    assert res_2.status_code == 201
