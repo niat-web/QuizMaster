@@ -194,3 +194,82 @@ def test_stats(client):
     assert stats["total_quizzes"] == 1
     assert stats["total_attempts"] == 1
     assert stats["quizzes"][0]["average_score"] == 1
+# 1. Unknown quiz leaderboard
+def test_leaderboard_unknown_quiz(client):
+    response = client.get("/api/quizzes/999/leaderboard")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
+# 2. Leaderboard with no attempts
+def test_leaderboard_no_attempts(client):
+    quiz_id = create_quiz(client)
+    response = client.get(f"/api/quizzes/{quiz_id}/leaderboard")
+
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+
+# 3. Faster player ranks higher when scores are equal
+def test_leaderboard_faster_time_ranks_higher(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "B")
+    question_id = client.get(
+        f"/api/quizzes/{quiz_id}"
+    ).get_json()["questions"][0]["id"]
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Slower Player",
+        "answers": {str(question_id): "B"},
+        "time_taken_seconds": 20,
+    })
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Faster Player",
+        "answers": {str(question_id): "B"},
+        "time_taken_seconds": 10,
+    })
+
+    response = client.get(f"/api/quizzes/{quiz_id}/leaderboard")
+    entries = response.get_json()
+
+    assert entries[0]["player_name"] == "Faster Player"
+    assert entries[1]["player_name"] == "Slower Player"
+
+
+# 4. Stats with an empty database
+def test_stats_empty_database(client):
+    response = client.get("/api/stats")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "total_quizzes": 0,
+        "total_attempts": 0,
+        "quizzes": [],
+    }
+
+
+# 5. Average score of multiple attempts
+def test_stats_average_score_multiple_attempts(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "B")
+    question_id = client.get(
+        f"/api/quizzes/{quiz_id}"
+    ).get_json()["questions"][0]["id"]
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(question_id): "B"},
+    })
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Rohan",
+        "answers": {str(question_id): "A"},
+    })
+
+    response = client.get("/api/stats")
+    stats = response.get_json()
+
+    assert stats["total_attempts"] == 2
+    assert stats["quizzes"][0]["attempts"] == 2
+    assert stats["quizzes"][0]["average_score"] == 0.5
