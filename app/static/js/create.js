@@ -7,9 +7,14 @@ let quizId = null;
 let added = 0;
 
 async function postJson(url, data) {
+    const writeToken = document.getElementById("write-api-token").value.trim();
+    const headers = { "Content-Type": "application/json" };
+    if (writeToken) {
+        headers.Authorization = "Bearer " + writeToken;
+    }
     const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(data),
     });
     const result = await response.json();

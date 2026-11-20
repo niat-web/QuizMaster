@@ -74,6 +74,35 @@ quizzes are added.
 
 If `DATABASE_URL` is not set, SQLite is used.
 
+## Write API authentication
+
+Creating quizzes and adding questions requires a shared token. Copy
+`.env.example` to `.env` and set `WRITE_API_TOKEN`:
+
+```
+WRITE_API_TOKEN=replace-with-a-long-random-secret
+```
+
+Send it in the `Authorization` header:
+
+```
+Authorization: Bearer replace-with-a-long-random-secret
+```
+
+Example:
+
+```
+curl -X POST http://127.0.0.1:5000/api/quizzes \
+  -H "Authorization: Bearer replace-with-a-long-random-secret" \
+  -H "Content-Type: application/json" \
+  -d "{\"title\":\"Maths\"}"
+```
+
+When `WRITE_API_TOKEN` is set, write endpoints return `401` without a valid
+token. If `WRITE_API_TOKEN` is not configured, write endpoints remain open as
+they were before token protection was added. Read endpoints, quiz submission,
+and the leaderboard remain available without a token.
+
 ## Running tests
 
 ```

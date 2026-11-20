@@ -3,7 +3,7 @@ def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"
         "title": title,
         "difficulty": difficulty,
         "category": category,
-    })
+    }, headers={"Authorization": "Bearer test-write-token"})
     return response.get_json()["id"]
 
 
@@ -15,7 +15,7 @@ def add_question(client, quiz_id, correct_option="B"):
         "option_c": "3",
         "option_d": "4",
         "correct_option": correct_option,
-    })
+    }, headers={"Authorization": "Bearer test-write-token"})
 
 
 def test_list_quizzes_empty(client):
@@ -25,45 +25,128 @@ def test_list_quizzes_empty(client):
 
 
 def test_create_quiz(client):
-    response = client.post("/api/quizzes", json={"title": "Maths"})
+    response = client.post(
+        "/api/quizzes",
+        json={"title": "Maths"},
+        headers={"Authorization": "Bearer test-write-token"},
+    )
     assert response.status_code == 201
     data = response.get_json()
     assert data["title"] == "Maths"
     assert data["difficulty"] == "easy"
 
 
+def test_create_quiz_requires_valid_token(client):
+    response = client.post("/api/quizzes", json={"title": "Maths"})
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Valid write API token required"}
+
+    response = client.post(
+        "/api/quizzes",
+        json={"title": "Maths"},
+        headers={"Authorization": "Bearer wrong-token"},
+    )
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Valid write API token required"}
+
+
+def test_add_question_requires_valid_token(client):
+    quiz_id = create_quiz(client)
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions",
+        json={
+            "text": "What is 1 + 1?",
+            "option_a": "1",
+            "option_b": "2",
+            "option_c": "3",
+            "option_d": "4",
+            "correct_option": "B",
+        },
+    )
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Valid write API token required"}
+
+
+def test_missing_write_token_configuration_allows_writes(app, client):
+    app.config["WRITE_API_TOKEN"] = ""
+    response = client.post("/api/quizzes", json={"title": "Maths"})
+    assert response.status_code == 201
+    assert response.get_json()["title"] == "Maths"
+
+    quiz_id = response.get_json()["id"]
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions",
+        json={
+            "text": "What is 1 + 1?",
+            "option_a": "1",
+            "option_b": "2",
+            "option_c": "3",
+            "option_d": "4",
+            "correct_option": "B",
+        },
+    )
+    assert response.status_code == 201
+
+
 def test_create_quiz_empty_title(client):
-    response = client.post("/api/quizzes", json={"title": "  "})
+    response = client.post(
+        "/api/quizzes",
+        json={"title": "  "},
+        headers={"Authorization": "Bearer test-write-token"},
+    )
     assert response.status_code == 400
     assert "error" in response.get_json()
 
 
 def test_create_quiz_wrong_difficulty(client):
-    response = client.post("/api/quizzes", json={
-        "title": "Maths",
-        "difficulty": "impossible",
-    })
+    response = client.post(
+        "/api/quizzes",
+        json={"title": "Maths", "difficulty": "impossible"},
+        headers={"Authorization": "Bearer test-write-token"},
+    )
     assert response.status_code == 400
 
 
 def test_create_quiz_duplicate_title(client):
-    response1 = client.post("/api/quizzes", json={"title": "Geography"})
+    headers = {"Authorization": "Bearer test-write-token"}
+    response1 = client.post(
+        "/api/quizzes",
+        json={"title": "Geography"},
+        headers=headers,
+    )
     assert response1.status_code == 201
 
-    response2 = client.post("/api/quizzes", json={"title": "Geography"})
+    response2 = client.post(
+        "/api/quizzes",
+        json={"title": "Geography"},
+        headers=headers,
+    )
     assert response2.status_code == 400
     assert response2.get_json()["error"] == "A quiz with this title already exists"
 
 
 def test_create_quiz_duplicate_title_case_insensitive(client):
-    response1 = client.post("/api/quizzes", json={"title": "Science"})
+    headers = {"Authorization": "Bearer test-write-token"}
+    response1 = client.post(
+        "/api/quizzes",
+        json={"title": "Science"},
+        headers=headers,
+    )
     assert response1.status_code == 201
 
-    response2 = client.post("/api/quizzes", json={"title": "science"})
+    response2 = client.post(
+        "/api/quizzes",
+        json={"title": "science"},
+        headers=headers,
+    )
     assert response2.status_code == 400
     assert response2.get_json()["error"] == "A quiz with this title already exists"
 
-    response3 = client.post("/api/quizzes", json={"title": "History"})
+    response3 = client.post(
+        "/api/quizzes",
+        json={"title": "History"},
+        headers=headers,
+    )
     assert response3.status_code == 201
 
 

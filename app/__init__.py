@@ -29,6 +29,7 @@ def create_app(test_config=None):
         "RATELIMIT_STORAGE_URI", "memory://"
     )
     app.config["RATELIMIT_HEADERS_ENABLED"] = True
+    app.config["WRITE_API_TOKEN"] = os.environ.get("WRITE_API_TOKEN", "")
     if test_config:
         app.config.update(test_config)
 

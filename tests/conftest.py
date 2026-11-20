@@ -10,6 +10,7 @@ def app():
         "SQLALCHEMY_DATABASE_URI": "sqlite://",
         "LOAD_SEED_DATA": False,
         "SUBMIT_RATE_LIMIT": "1000 per minute",
+        "WRITE_API_TOKEN": "test-write-token",
     })
     yield app
     with app.app_context():

@@ -1,3 +1,5 @@
+from secrets import compare_digest
+
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app import db, limiter
@@ -20,6 +22,22 @@ def get_text(data, field):
     if not isinstance(value, str):
         return ""
     return value.strip()
+
+
+def require_write_token():
+    configured_token = current_app.config.get("WRITE_API_TOKEN", "")
+    if not configured_token:
+        return None
+
+    authorization = request.headers.get("Authorization", "")
+    prefix = "Bearer "
+    if not authorization.startswith(prefix):
+        return error("Valid write API token required", 401)
+
+    supplied_token = authorization[len(prefix):].strip()
+    if not supplied_token or not compare_digest(supplied_token, configured_token):
+        return error("Valid write API token required", 401)
+    return None
 
 
 @pages.route("/")
@@ -78,6 +96,10 @@ def get_quiz(quiz_id):
 
 @api.route("/quizzes", methods=["POST"])
 def create_quiz():
+    token_error = require_write_token()
+    if token_error is not None:
+        return token_error
+
     data = request.get_json(silent=True) or {}
     title = get_text(data, "title")
     difficulty = get_text(data, "difficulty") or "easy"
@@ -103,6 +125,10 @@ def create_quiz():
 
 @api.route("/quizzes/<int:quiz_id>/questions", methods=["POST"])
 def add_question(quiz_id):
+    token_error = require_write_token()
+    if token_error is not None:
+        return token_error
+
     quiz = db.session.get(Quiz, quiz_id)
     if quiz is None:
         return error("Quiz not found", 404)
