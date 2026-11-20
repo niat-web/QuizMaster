@@ -7,6 +7,7 @@ Thank you for helping! This guide is for first-time contributors.
 1. Find an open issue you would like to work on.
 2. Comment on the issue and say you want to work on it.
 3. Wait until a maintainer assigns the issue to you. Please do not start before that.
+4. Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
 ## Steps
 
