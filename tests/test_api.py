@@ -7,6 +7,29 @@ def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"
     return response.get_json()["id"]
 
 
+def test_create_quiz_title_must_be_string(client):
+    response = client.post(
+        "/api/quizzes",
+        json={"title": 123},
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "title must be a string"
+    }
+
+
+def test_create_quiz_missing_title_still_required(client):
+    response = client.post(
+        "/api/quizzes",
+        json={},
+    )
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Title is required"
+    }
+
+
 def add_question(client, quiz_id, correct_option="B"):
     return client.post(f"/api/quizzes/{quiz_id}/questions", json={
         "text": "What is 1 + 1?",
@@ -16,6 +39,26 @@ def add_question(client, quiz_id, correct_option="B"):
         "option_d": "4",
         "correct_option": correct_option,
     })
+
+
+def test_add_question_option_must_be_string(client):
+    quiz_id = create_quiz(client)
+
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions",
+        json={
+            "text": "What is 1 + 1?",
+            "option_a": "1",
+            "option_b": 2,
+            "option_c": "3",
+            "option_d": "4",
+            "correct_option": "B",
+        },
+    )
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "option_b must be a string"
+    }
 
 
 def test_list_quizzes_empty(client):
@@ -131,6 +174,22 @@ def test_submit_quiz_missing_player_name(client):
     add_question(client, quiz_id)
     response = client.post(f"/api/quizzes/{quiz_id}/submit", json={"answers": {}})
     assert response.status_code == 400
+
+
+def test_submit_quiz_player_name_must_be_string(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/submit",
+        json={
+            "player_name": ["Asha"],
+            "answers": {},
+        },
+    )
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "player_name must be a string"
+    }
 
 
 def test_submit_quiz_not_found(client):
