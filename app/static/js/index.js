@@ -1,3 +1,4 @@
+
 const quizList = document.getElementById("quiz-list");
 const message = document.getElementById("message");
 
@@ -28,16 +29,26 @@ function showQuiz(quiz) {
 }
 
 async function loadQuizzes() {
-    const response = await fetch("/api/quizzes");
-    if (!response.ok) {
+    message.textContent = "Loading quizzes...";
+
+    try {
+        const response = await fetch("/api/quizzes");
+        if (!response.ok) {
+            message.textContent = "Could not load quizzes.";
+            return;
+        }
+
+        const quizzes = await response.json();
+        message.textContent = "";
+
+        if (quizzes.length === 0) {
+            message.textContent = "No quizzes yet.";
+        }
+
+        quizzes.forEach(showQuiz);
+    } catch (error) {
         message.textContent = "Could not load quizzes.";
-        return;
     }
-    const quizzes = await response.json();
-    if (quizzes.length === 0) {
-        message.textContent = "No quizzes yet.";
-    }
-    quizzes.forEach(showQuiz);
 }
 
 loadQuizzes();

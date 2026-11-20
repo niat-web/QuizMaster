@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
-from app import db
+from app import db, limiter
 from app.models import Attempt, Question, Quiz
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -41,6 +41,17 @@ def result_page():
 def leaderboard_page():
     return render_template("leaderboard.html")
 
+@pages.app_errorhandler(404)
+def not_found(e):
+    if request.path.startswith("/api/"):
+        return error("Not found", 404)
+    return render_template("404.html"), 404
+
+
+@pages.route("/create")
+def create_page():
+    return render_template("create.html")
+
 
 @api.route("/quizzes")
 def list_quizzes():
@@ -74,6 +85,10 @@ def create_quiz():
         return error("Title is required", 400)
     if difficulty not in DIFFICULTIES:
         return error("Difficulty must be easy, medium or hard", 400)
+
+    existing_quiz = Quiz.query.filter(db.func.lower(Quiz.title) == title.lower()).first()
+    if existing_quiz:
+        return error("A quiz with this title already exists", 400)
 
     quiz = Quiz(
         title=title,
@@ -116,6 +131,7 @@ def add_question(quiz_id):
 
 
 @api.route("/quizzes/<int:quiz_id>/submit", methods=["POST"])
+@limiter.limit(lambda: current_app.config["SUBMIT_RATE_LIMIT"])
 def submit_quiz(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
     if quiz is None:
