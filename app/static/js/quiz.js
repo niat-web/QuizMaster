@@ -15,9 +15,16 @@ const answers = {};
 
 async function loadQuiz() {
     const response = await fetch("/api/quizzes/" + quizId);
+    if (response.status === 404) {
+    document.getElementById("quiz-title").textContent = "Quiz";
+    message.textContent = "Quiz not found.";
+    return;
+    }
+
     if (!response.ok) {
         document.getElementById("quiz-title").textContent = "Quiz";
-        message.textContent = "Quiz not found.";
+        message.textContent =
+            "Something went wrong. Please try again later.";
         return;
     }
     quiz = await response.json();
