@@ -21,6 +21,7 @@ function showQuiz(quiz) {
     addLine(card, "p", "Questions: " + quiz.question_count);
 
     const link = document.createElement("a");
+    link.dataset.quizId = quiz.id;
     link.className = "button";
     link.href = "/quiz/" + quiz.id;
     link.textContent = "Open quiz";

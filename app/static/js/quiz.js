@@ -38,6 +38,7 @@ function showOption(question, letter) {
     label.className = "option";
 
     const radio = document.createElement("input");
+    radio.id = "option-" + letter;
     radio.type = "radio";
     radio.name = "option";
     radio.value = letter;
