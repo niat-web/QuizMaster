@@ -55,15 +55,19 @@ def create_page():
 
 @api.route("/quizzes")
 def list_quizzes():
-    query = Quiz.query
+    query = (
+        db.session.query(Quiz, db.func.count(Question.id).label("question_count"))
+        .outerjoin(Question, Quiz.id == Question.quiz_id)
+        .group_by(Quiz.id)
+    )
     category = request.args.get("category")
     difficulty = request.args.get("difficulty")
     if category:
-        query = query.filter_by(category=category)
+        query = query.filter(Quiz.category == category)
     if difficulty:
-        query = query.filter_by(difficulty=difficulty)
+        query = query.filter(Quiz.difficulty == difficulty)
     quizzes = query.order_by(Quiz.id).all()
-    return jsonify([quiz.to_dict() for quiz in quizzes])
+    return jsonify([quiz.to_dict(question_count=q_count) for quiz, q_count in quizzes])
 
 
 @api.route("/quizzes/<int:quiz_id>")
@@ -193,19 +197,31 @@ def leaderboard(quiz_id):
 
 @api.route("/stats")
 def stats():
-    quiz_stats = []
-    for quiz in Quiz.query.order_by(Quiz.id).all():
-        average = db.session.query(db.func.avg(Attempt.score)).filter(
-            Attempt.quiz_id == quiz.id
-        ).scalar()
-        quiz_stats.append({
-            "quiz_id": quiz.id,
-            "title": quiz.title,
-            "attempts": len(quiz.attempts),
-            "average_score": round(average or 0, 2),
-        })
+    stats_data = (
+        db.session.query(
+            Quiz.id,
+            Quiz.title,
+            db.func.count(Attempt.id).label("attempts_count"),
+            db.func.avg(Attempt.score).label("avg_score"),
+        )
+        .outerjoin(Attempt, Quiz.id == Attempt.quiz_id)
+        .group_by(Quiz.id)
+        .order_by(Quiz.id)
+        .all()
+    )
+
+    quiz_stats = [
+        {
+            "quiz_id": row.id,
+            "title": row.title,
+            "attempts": row.attempts_count,
+            "average_score": round(row.avg_score or 0, 2),
+        }
+        for row in stats_data
+    ]
+
     return jsonify({
-        "total_quizzes": Quiz.query.count(),
+        "total_quizzes": len(quiz_stats),
         "total_attempts": Attempt.query.count(),
         "quizzes": quiz_stats,
     })
