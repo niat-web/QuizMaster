@@ -6,12 +6,15 @@ const optionsDiv = document.getElementById("options");
 const prevButton = document.getElementById("prev-button");
 const nextButton = document.getElementById("next-button");
 const submitButton = document.getElementById("submit-button");
+const markReviewButton = document.getElementById("mark-review-button");
+const reviewSummary = document.getElementById("review-summary");
 
 let quiz = null;
 let playerName = "";
 let currentIndex = 0;
 let startTime = 0;
 const answers = {};
+const markedQuestions = new Set();
 
 async function loadQuiz() {
     const response = await fetch("/api/quizzes/" + quizId);
@@ -54,10 +57,41 @@ function showOption(question, letter) {
     optionsDiv.appendChild(label);
 }
 
+function updateReviewSummary() {
+    if (!reviewSummary) {
+        return;
+    }
+    if (markedQuestions.size === 0) {
+        reviewSummary.textContent = "No questions marked for review.";
+        return;
+    }
+
+    const numbers = Array.from(markedQuestions)
+        .map(id => quiz.questions.findIndex(q => q.id === id) + 1)
+        .filter(number => number > 0)
+        .sort((a, b) => a - b);
+
+    reviewSummary.textContent =
+        "Marked for review: " + numbers.join(", ");
+}
+
+
 function showQuestion() {
 
     const question = quiz.questions[currentIndex];
     const isLast = currentIndex === quiz.questions.length - 1;
+
+    const isMarked = markedQuestions.has(question.id);
+
+    markReviewButton.textContent = isMarked
+        ? "Unmark Review"
+        : "Mark for Review";
+
+    markReviewButton.setAttribute("aria-pressed", String(isMarked));
+
+    markReviewButton.classList.toggle("is-marked", isMarked);
+
+    updateReviewSummary();
 
     document.getElementById("progress").textContent =
         "Question " + (currentIndex + 1) + " of " + quiz.questions.length;
@@ -117,6 +151,19 @@ startForm.addEventListener("submit", function (event) {
     quizInProgress = true;
     showQuestion();
 });
+
+markReviewButton.addEventListener("click", function () {
+    const questionId = quiz.questions[currentIndex].id;
+
+    if (markedQuestions.has(questionId)) {
+        markedQuestions.delete(questionId);
+    } else {
+        markedQuestions.add(questionId);
+    }
+
+    showQuestion();
+});
+
 
 prevButton.addEventListener("click", function () {
     currentIndex = currentIndex - 1;

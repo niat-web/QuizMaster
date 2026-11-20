@@ -107,6 +107,9 @@ button:disabled {
 }
 
 .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-top: 16px;
 }
 
@@ -157,3 +160,16 @@ td {
     overflow-wrap: anywhere;
 }
 
+.review-summary {
+    color: #744210;
+    margin: 8px 0 16px;
+    font-size: 14px;
+}
+
+#mark-review-button {
+    background: #805ad5;
+}
+
+#mark-review-button.is-marked {
+    background: #975a16;
+}
