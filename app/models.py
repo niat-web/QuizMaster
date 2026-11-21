@@ -1,3 +1,4 @@
+
 from datetime import datetime, timezone
 
 from app import db
@@ -22,6 +23,9 @@ class Quiz(db.Model):
         "Attempt", backref="quiz", lazy=True, cascade="all, delete-orphan"
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self, question_count=None):
         return {
             "id": self.id,
@@ -34,7 +38,7 @@ class Quiz(db.Model):
                 if question_count is None
                 else question_count
             ),
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 
@@ -49,7 +53,7 @@ class Question(db.Model):
         db.String(20),
         nullable=False,
         default="multiple_choice",
-        server_default="multiple_choice"
+        server_default="multiple_choice",
     )
 
     option_a = db.Column(db.String(100), nullable=False)
@@ -58,6 +62,9 @@ class Question(db.Model):
     option_d = db.Column(db.String(100), nullable=True)
 
     correct_option = db.Column(db.String(1), nullable=False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         # The correct answer is not included on purpose.
@@ -93,6 +100,9 @@ class Attempt(db.Model):
     total_questions = db.Column(db.Integer, nullable=False)
     time_taken_seconds = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=utc_now)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {
