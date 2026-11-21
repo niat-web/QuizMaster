@@ -17,7 +17,9 @@ async function loadQuiz() {
     const response = await fetch("/api/quizzes/" + quizId);
     if (!response.ok) {
         document.getElementById("quiz-title").textContent = "Quiz";
-        message.textContent = "Quiz not found.";
+        message.textContent = response.status === 404
+            ? "Quiz not found."
+            : "Something went wrong. Please try again later.";
         return;
     }
     quiz = await response.json();
