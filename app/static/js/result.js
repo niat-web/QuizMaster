@@ -12,7 +12,34 @@ if (saved === null) {
     document.getElementById("result-wrong").textContent = "Wrong answers: " + result.wrong;
     document.getElementById("result-time").textContent =
         "Time taken: " + result.time_taken_seconds + " seconds";
-    document.getElementById("leaderboard-link").href = "/leaderboard?quiz=" + result.quiz_id;
-    document.getElementById("history-link").href = "/history?name=" + encodeURIComponent(result.player_name);
-    document.getElementById("result-box").hidden = false;
+     document.getElementById("leaderboard-link").href = "/leaderboard?quiz=" + result.quiz_id;
+const wrongAnswers = result.wrong_answers || [];
+
+if (wrongAnswers.length > 0) {
+    const section = document.getElementById("wrong-answers-section");
+    const list = document.getElementById("wrong-answers-list");
+
+    section.hidden = false;
+
+    wrongAnswers.forEach(function (item, index) {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const question = document.createElement("h3");
+        question.textContent = (index + 1) + ". " + item.question;
+
+        const yourAnswer = document.createElement("p");
+        yourAnswer.textContent = "Your answer: " + item.your_answer;
+
+        const correctAnswer = document.createElement("p");
+        correctAnswer.textContent = "Correct answer: " + item.correct_answer;
+
+        card.appendChild(question);
+        card.appendChild(yourAnswer);
+        card.appendChild(correctAnswer);
+
+        list.appendChild(card);
+    });
+}
+        document.getElementById("result-box").hidden = false;
 }
