@@ -29,33 +29,34 @@ improvements waiting to be done as issues.
 
 1. Install Python from https://www.python.org/downloads/ and tick
    "Add Python to PATH" during the install.
-2. Clone the repo:
+2. Fork the repository at https://github.com/niat-web/QuizMaster (see [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines).
+3. Clone your fork:
 
    ```
-   git clone https://github.com/NxtLabTech/QuizMaster.git
+   git clone https://github.com/<your-username>/QuizMaster.git
    cd QuizMaster
    ```
 
-3. Create and activate a virtual environment:
+4. Create and activate a virtual environment:
 
    ```
    python -m venv venv
    venv\Scripts\activate
    ```
 
-4. Install the packages:
+5. Install the packages:
 
    ```
    pip install -r requirements.txt
    ```
 
-5. Start the app:
+6. Start the app:
 
    ```
    python run.py
    ```
 
-6. Open http://127.0.0.1:5000 in your browser.
+7. Open http://127.0.0.1:5000 in your browser.
 
 The database file is created automatically on the first run, and 3 sample
 quizzes are added.
@@ -82,9 +83,18 @@ pytest
 
 The tests use an in-memory SQLite database, so your real data is not touched.
 
+## Configuration
+You can configure optional environment variables by creating a .env file based on .env.example:
+
+FLASK_DEBUG: Set to 1 or true to enable Flask debug mode during development. It is turned off (0) by default.
+
+
 ## API endpoints
 
 All endpoints are under `/api` and use JSON.
+
+> **Looking for ready-to-run curl examples and error schemas?**  
+> Check out the complete [API Documentation (docs/api.md)](docs/api.md) for curl commands (macOS, Linux, and Windows), request/response payloads, and error codes for every endpoint.
 
 | Method | Endpoint                        | Description                                  |
 |--------|---------------------------------|----------------------------------------------|
@@ -145,3 +155,13 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before you start.
 ## License
 
 MIT. See the [LICENSE](LICENSE) file.
+
+## Screenshots
+
+![Home page](docs/screenshots/home.jpg)
+
+![Quiz page](docs/screenshots/quiz.jpg)
+
+![Result page](docs/screenshots/result.jpg)
+
+![Leaderboard](docs/screenshots/leaderboard.jpg)

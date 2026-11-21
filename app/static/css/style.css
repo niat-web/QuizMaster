@@ -9,6 +9,27 @@ body {
     color: #222;
 }
 
+.skip-link {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    padding: 12px 20px;
+    background: white;
+    color: #2c5282;
+    font-weight: bold;
+    text-decoration: none;
+    border: 2px solid #2c5282;
+    border-radius: 4px;
+    transform: translateY(-150%);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+    outline: 3px solid #f6ad55;
+    outline-offset: 3px;
+}
+
 header {
     display: flex;
     justify-content: space-between;
@@ -163,3 +184,27 @@ td {
     margin: 12px 0 20px;
     accent-color: #4178f1;
 }
+#search-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 14px;
+    font-size: 16px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    background: #fff;
+    margin-bottom: 20px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#search-input:focus {
+    border-color: #2c5282;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.15);
+}
+
+#no-results {
+    font-size: 16px;
+    color: #4a5568;
+    margin: 16px 0 24px;
+}
+

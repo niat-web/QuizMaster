@@ -68,7 +68,12 @@ function showQuestion() {
     document.getElementById("question-text").textContent = question.text;
 
     optionsDiv.innerHTML = "";
-    ["A", "B", "C", "D"].forEach(function (letter) {
+
+    const availableOptions = question.question_type === "true_false"
+        ? ["A", "B"]
+        : ["A", "B", "C", "D"];
+
+    availableOptions.forEach(function (letter) {
         showOption(question, letter);
     });
 

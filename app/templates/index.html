@@ -4,6 +4,8 @@
 {% block content %}
 <h1>Choose a quiz</h1>
 <p id="message"></p>
+<input id="search-input" type="text" placeholder="Search quizzes by title..." aria-label="Search quizzes">
+<p id="no-results" hidden>No quizzes found.</p>
 <div id="quiz-list" class="quiz-grid"></div>
 {% endblock %}
 
