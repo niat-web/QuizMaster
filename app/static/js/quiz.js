@@ -87,6 +87,13 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 async function submitQuiz() {
+    const answeredCount = Object.keys(answers).length;
+    const totalQuestions = quiz.questions.length;
+    const unansweredCount = totalQuestions - answeredCount;
+    if (unansweredCount > 0) {
+    const confirmed = window.confirm("You have " + unansweredCount + " unanswered questions. Submit anyway?");
+    if (!confirmed) { return; }
+    }
     const seconds = Math.round((Date.now() - startTime) / 1000);
     const response = await fetch("/api/quizzes/" + quizId + "/submit", {
         method: "POST",
