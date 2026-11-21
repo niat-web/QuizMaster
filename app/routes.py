@@ -11,6 +11,8 @@ OPTIONS = {
     "multiple_choice": ["A", "B", "C", "D"],
     "true_false": ["A", "B"],
 }
+DEFAULT_PER_PAGE = 10
+MAX_PER_PAGE = 50
 
 
 def error(message, status):
@@ -66,6 +68,31 @@ def list_quizzes():
     category = request.args.get("category")
     difficulty = request.args.get("difficulty")
 
+    page_raw = request.args.get("page")
+    per_page_raw = request.args.get("per_page")
+
+    page = None
+    per_page = DEFAULT_PER_PAGE
+
+    if page_raw is not None:
+        try:
+            page = int(page_raw)
+            if page < 1:
+                return error("Page must be a positive integer", 400)
+        except ValueError:
+            return error("Page must be an integer", 400)
+
+    if per_page_raw is not None:
+        try:
+            per_page = int(per_page_raw)
+            if per_page < 1:
+                return error("Per_page must be a positive integer", 400)
+        except ValueError:
+            return error("Per_page must be an integer", 400)
+
+    if per_page > MAX_PER_PAGE:
+        per_page = MAX_PER_PAGE
+
     question_counts = (
         db.session.query(
             Question.quiz_id,
@@ -88,10 +115,27 @@ def list_quizzes():
     if difficulty:
         query = query.filter(Quiz.difficulty == difficulty)
 
-    results = query.order_by(Quiz.id).all()
-    return jsonify([
+    query = query.order_by(Quiz.id)
+
+    if page is not None or per_page_raw is not None:
+        if page is None:
+            page = 1
+        pagination = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        results = pagination.items
+        total_count = pagination.total
+    else:
+        results = query.all()
+        total_count = len(results)
+
+    response = jsonify([
         quiz.to_dict(question_count=int(q_count)) for quiz, q_count in results
     ])
+    response.headers["X-Total-Count"] = str(total_count)
+    return response
 
 
 @api.route("/quizzes/<int:quiz_id>")

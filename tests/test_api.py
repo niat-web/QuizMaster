@@ -125,6 +125,56 @@ def test_filter_quizzes_no_matching_results(client):
     assert response_combined.get_json() == []
 
 
+def test_list_quizzes_pagination(client):
+    create_quiz(client, "Quiz 1")
+    create_quiz(client, "Quiz 2")
+    create_quiz(client, "Quiz 3")
+    response = client.get("/api/quizzes?per_page=1&page=2")
+    assert response.status_code == 200
+    quizzes = response.get_json()
+    assert len(quizzes) == 1
+    assert quizzes[0]["title"] == "Quiz 2"
+    assert response.headers.get("X-Total-Count") == "3"
+
+
+def test_list_quizzes_pagination_with_filter(client):
+    create_quiz(client, "Easy 1", "easy")
+    create_quiz(client, "Easy 2", "easy")
+    create_quiz(client, "Hard 1", "hard")
+    response = client.get("/api/quizzes?difficulty=easy&page=1&per_page=1")
+    assert response.status_code == 200
+    quizzes = response.get_json()
+    assert len(quizzes) == 1
+    assert quizzes[0]["title"] == "Easy 1"
+    assert response.headers.get("X-Total-Count") == "2"
+
+
+def test_list_quizzes_invalid_page(client):
+    res_str = client.get("/api/quizzes?page=abc")
+    assert res_str.status_code == 400
+    assert "error" in res_str.get_json()
+
+    res_zero = client.get("/api/quizzes?page=0")
+    assert res_zero.status_code == 400
+    assert "error" in res_zero.get_json()
+
+
+def test_list_quizzes_invalid_per_page(client):
+    res_str = client.get("/api/quizzes?per_page=abc")
+    assert res_str.status_code == 400
+    assert "error" in res_str.get_json()
+
+    res_neg = client.get("/api/quizzes?per_page=-1")
+    assert res_neg.status_code == 400
+    assert "error" in res_neg.get_json()
+
+
+def test_list_quizzes_max_per_page_cap(client):
+    create_quiz(client, "Quiz A")
+    response = client.get("/api/quizzes?per_page=100&page=1")
+    assert response.status_code == 200
+
+
 def test_get_quiz_not_found(client):
     response = client.get("/api/quizzes/999")
     assert response.status_code == 404
