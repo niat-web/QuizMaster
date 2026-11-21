@@ -208,9 +208,37 @@ def submit_quiz(quiz_id):
     if isinstance(time_taken, bool) or not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
-       # Answers are keyed by question id; unanswered questions count as wrong.
-    # Only valid options for each question type can receive credit.
+    # Validate that every submitted answer is A, B, C, or D
+    for answer in answers.values():
+        if answer not in OPTIONS:
+            return error("Answers must be A, B, C or D", 400)
+
+    # Answers are keyed by question id; unanswered questions count as wrong
     score = 0
+    def test_submit_quiz_not_found(client):
+    response = client.post("/api/quizzes/999/submit", json={
+        "player_name": "Asha",
+        "answers": {},
+    })
+    assert response.status_code == 404
+
+
+def test_submit_quiz_invalid_answer_letter(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "B")
+    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(question_id): "Z"},
+        "time_taken_seconds": 12,
+    })
+    
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_leaderboard_is_sorted_and_limited(client):
     for question in quiz.questions:
         submitted_answer = answers.get(str(question.id))
         valid_options = OPTIONS.get(question.question_type, [])

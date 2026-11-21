@@ -358,6 +358,19 @@ def test_submit_quiz_not_found(client):
     assert response.status_code == 404
 
 
+def test_submit_quiz_invalid_answer_letter(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "B")
+    question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(question_id): "Z"},
+        "time_taken_seconds": 12,
+    })
+    
+    assert response.status_code == 400
+    assert "error" in response.get_json()
 def test_submit_quiz_rate_limit(client, app):
     app.config["SUBMIT_RATE_LIMIT"] = "2 per minute"
     quiz_id = create_quiz(client)
