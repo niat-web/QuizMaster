@@ -3,6 +3,14 @@ from datetime import datetime, timezone
 from app import db
 
 
+DIFFICULTIES = ["easy", "medium", "hard"]
+OPTIONS = {
+    "multiple_choice": ["A", "B", "C", "D"],
+    "true_false": ["A", "B"],
+}
+ALL_OPTIONS = sorted(list({opt for opts in OPTIONS.values() for opt in opts}))
+
+
 def utc_now():
     return datetime.now(timezone.utc)
 
@@ -14,6 +22,13 @@ class Quiz(db.Model):
     category = db.Column(db.String(50), default="General")
     difficulty = db.Column(db.String(10), default="easy")
     created_at = db.Column(db.DateTime, default=utc_now)
+
+    __table_args__ = (
+        db.CheckConstraint(
+            difficulty.in_(DIFFICULTIES),
+            name="check_difficulty_valid",
+        ),
+    )
 
     questions = db.relationship(
         "Question", backref="quiz", lazy=True, cascade="all, delete-orphan"
@@ -59,6 +74,13 @@ class Question(db.Model):
 
     correct_option = db.Column(db.String(1), nullable=False)
 
+    __table_args__ = (
+        db.CheckConstraint(
+            correct_option.in_(ALL_OPTIONS),
+            name="check_correct_option_valid",
+        ),
+    )
+
     def to_dict(self):
         # The correct answer is not included on purpose.
         result = {
@@ -77,15 +99,6 @@ class Question(db.Model):
 
 
 class Attempt(db.Model):
-    __table_args__ = (
-        db.Index(
-            "ix_attempt_leaderboard",
-            "quiz_id",
-            db.desc("score"),
-            "time_taken_seconds",
-        ),
-    )
-
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
     player_name = db.Column(db.String(50), nullable=False)
@@ -93,6 +106,19 @@ class Attempt(db.Model):
     total_questions = db.Column(db.Integer, nullable=False)
     time_taken_seconds = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=utc_now)
+
+    __table_args__ = (
+        db.Index(
+            "ix_attempt_leaderboard",
+            "quiz_id",
+            db.desc("score"),
+            "time_taken_seconds",
+        ),
+        db.CheckConstraint(
+            (score >= 0) & (score <= total_questions),
+            name="check_score_range",
+        ),
+    )
 
     def to_dict(self):
         return {

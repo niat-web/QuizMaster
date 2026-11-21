@@ -1,16 +1,10 @@
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app import db, limiter
-from app.models import Attempt, Question, Quiz
+from app.models import Attempt, DIFFICULTIES, OPTIONS, Question, Quiz
 
 api = Blueprint("api", __name__, url_prefix="/api")
 pages = Blueprint("pages", __name__)
-
-DIFFICULTIES = ["easy", "medium", "hard"]
-OPTIONS = {
-    "multiple_choice": ["A", "B", "C", "D"],
-    "true_false": ["A", "B"],
-}
 
 
 def error(message, status):
