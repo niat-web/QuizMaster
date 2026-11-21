@@ -105,6 +105,7 @@ All endpoints are under `/api` and use JSON.
 | POST   | /api/quizzes/<id>/submit        | Submit answers and get the result            |
 | GET    | /api/quizzes/<id>/leaderboard   | Top 10 attempts for a quiz                   |
 | GET    | /api/stats                      | Total quizzes, total attempts, average score per quiz |
+| GET | /api/quizzes/<id>/export.csv | Export all attempts as a CSV file |
 
 Example body for submitting answers (keys are question ids):
 

@@ -1,3 +1,6 @@
+import csv
+import io
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
@@ -556,3 +559,83 @@ def test_navigation_includes_history(client):
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert 'href="/history"' in html
+
+
+
+# CSV export tests
+
+def test_export_attempts_csv_not_found(client):
+    response = client.get("/api/quizzes/999/export.csv")
+
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
+def test_export_attempts_csv(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    question_id = client.get(
+        f"/api/quizzes/{quiz_id}"
+    ).get_json()["questions"][0]["id"]
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Divesh",
+        "answers": {str(question_id): "B"},
+        "time_taken_seconds": 25,
+    })
+
+    response = client.get(f"/api/quizzes/{quiz_id}/export.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+    assert f"quiz_{quiz_id}_attempts.csv" in response.headers["Content-Disposition"]
+
+    rows = list(csv.reader(io.StringIO(response.get_data(as_text=True))))
+
+    assert rows[0] == [
+        "player name",
+        "score",
+        "total questions",
+        "time taken",
+        "created at",
+    ]
+    assert len(rows) == 2
+    assert rows[1][0] == "Divesh"
+    assert rows[1][1:4] == ["1", "1", "25"]
+
+
+def test_export_attempts_csv_exports_all_attempts(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+
+    for i in range(12):
+        client.post(f"/api/quizzes/{quiz_id}/submit", json={
+            "player_name": f"Player {i}",
+            "answers": {},
+            "time_taken_seconds": 10 + i,
+        })
+
+    response = client.get(f"/api/quizzes/{quiz_id}/export.csv")
+
+    rows = list(csv.reader(io.StringIO(response.get_data(as_text=True))))
+
+    assert response.status_code == 200
+    assert len(rows) == 13  # Header + 12 attempts
+
+
+def test_export_attempts_csv_handles_commas_and_quotes(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+
+    player_name = 'Divesh, "Champion"'
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": player_name,
+        "answers": {},
+    })
+
+    response = client.get(f"/api/quizzes/{quiz_id}/export.csv")
+
+    rows = list(csv.reader(io.StringIO(response.get_data(as_text=True))))
+
+    assert rows[1][0] == player_name

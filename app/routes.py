@@ -1,4 +1,15 @@
-from flask import Blueprint, current_app, jsonify, render_template, request
+
+import csv
+import io
+
+from flask import (
+    Blueprint,
+    current_app,
+    jsonify,
+    render_template,
+    request,
+    make_response,
+)
 
 from app import db, limiter
 from app.models import Attempt, Question, Quiz
@@ -43,6 +54,7 @@ def result_page():
 @pages.route("/leaderboard")
 def leaderboard_page():
     return render_template("leaderboard.html")
+
 
 @pages.app_errorhandler(404)
 def not_found(e):
@@ -129,7 +141,6 @@ def create_quiz():
     return jsonify(quiz.to_dict()), 201
 
 
-
 @api.route("/quizzes/<int:quiz_id>/questions", methods=["POST"])
 def add_question(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
@@ -150,6 +161,7 @@ def add_question(quiz_id):
             "question_type must be multiple_choice or true_false",
             400
         )
+
     options = {
         letter: get_text(data, "option_" + letter.lower())
         for letter in OPTIONS[question_type]
@@ -199,6 +211,7 @@ def submit_quiz(quiz_id):
     player_name = get_text(data, "player_name")
     answers = data.get("answers")
     time_taken = data.get("time_taken_seconds", 0)
+
     if not player_name:
         return error("Player name is required", 400)
     if len(player_name) > 30:
@@ -208,7 +221,7 @@ def submit_quiz(quiz_id):
     if isinstance(time_taken, bool) or not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
-       # Answers are keyed by question id; unanswered questions count as wrong.
+    # Answers are keyed by question id; unanswered questions count as wrong.
     # Only valid options for each question type can receive credit.
     score = 0
     for question in quiz.questions:
@@ -220,6 +233,7 @@ def submit_quiz(quiz_id):
             and submitted_answer == question.correct_option
         ):
             score += 1
+
     total = len(quiz.questions)
 
     attempt = Attempt(
@@ -247,6 +261,7 @@ def leaderboard(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
     if quiz is None:
         return error("Quiz not found", 404)
+
     attempts = (
         Attempt.query.filter_by(quiz_id=quiz_id)
         .order_by(Attempt.score.desc(), Attempt.time_taken_seconds)
@@ -254,6 +269,47 @@ def leaderboard(quiz_id):
         .all()
     )
     return jsonify([attempt.to_dict() for attempt in attempts])
+
+
+@api.route("/quizzes/<int:quiz_id>/export.csv")
+def export_attempts_csv(quiz_id):
+    quiz = db.session.get(Quiz, quiz_id)
+    if quiz is None:
+        return error("Quiz not found", 404)
+
+    attempts = (
+        Attempt.query.filter_by(quiz_id=quiz_id)
+        .order_by(Attempt.id)
+        .all()
+    )
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "player name",
+        "score",
+        "total questions",
+        "time taken",
+        "created at",
+    ])
+
+    for attempt in attempts:
+        writer.writerow([
+            attempt.player_name,
+            attempt.score,
+            attempt.total_questions,
+            attempt.time_taken_seconds,
+            attempt.created_at.isoformat(),
+        ])
+
+    response = make_response(output.getvalue())
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="quiz_{quiz_id}_attempts.csv"'
+    )
+
+    return response
 
 
 @api.route("/stats")
@@ -303,6 +359,7 @@ def player_attempts(player_name):
     name = (player_name or "").strip()
     if not name:
         return error("Player name is required", 400)
+
     attempts = (
         Attempt.query.filter(
             db.func.lower(Attempt.player_name) == name.lower()
@@ -311,5 +368,3 @@ def player_attempts(player_name):
         .all()
     )
     return jsonify([attempt.to_dict() for attempt in attempts])
-
-
