@@ -413,6 +413,10 @@ def test_stats(client):
     assert stats["quizzes"][0]["average_score"] == 1
 
 
+def test_health_check(client):
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ok"}
 def test_player_attempts_empty_name(client):
     response_spaces = client.get("/api/players/%20%20/attempts")
     assert response_spaces.status_code == 400
