@@ -25,6 +25,69 @@ improvements waiting to be done as issues.
 - Python 3.11 or newer
 - Git
 
+## Quick start with Docker
+
+### Requirements
+
+- Docker Engine
+- Docker Compose (Compose plugin)
+
+### Run the application
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/niat-web/QuizMaster.git
+   cd QuizMaster
+   ```
+
+2. Create your environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Replace `MYSQL_PASSWORD` and `MYSQL_ROOT_PASSWORD` in `.env` with strong, randomly generated passwords.
+
+4. Build and start the application:
+
+   ```bash
+   docker compose up --build
+   ```
+
+5. Open http://localhost:5000 in your browser.
+
+Docker Compose starts the Flask application and MySQL database. The application waits until MySQL is healthy before starting.
+
+### Useful commands
+
+Run containers in the background:
+
+```bash
+docker compose up -d
+```
+
+View container status:
+
+```bash
+docker compose ps
+```
+
+View application logs:
+
+```bash
+docker compose logs -f web
+```
+
+Stop containers:
+
+```bash
+docker compose down
+```
+
+MySQL data is stored in a persistent Docker volume named `mysql_data`. Stopping the containers does not delete your database.
+
+**Warning:** `docker compose down -v` also removes the database volume and permanently deletes its stored data.
 ## Quick start on Windows
 
 1. Install Python from https://www.python.org/downloads/ and tick
