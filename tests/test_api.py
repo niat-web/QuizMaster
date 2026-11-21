@@ -7,7 +7,7 @@ def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"
     return response.get_json()["id"]
 
 
-def add_question(client, quiz_id, correct_option="B"):
+def add_question(client, quiz_id, correct_option="B", explanation="Because 1 + 1 equals 2."):
     return client.post(f"/api/quizzes/{quiz_id}/questions", json={
         "text": "What is 1 + 1?",
         "option_a": "1",
@@ -15,6 +15,7 @@ def add_question(client, quiz_id, correct_option="B"):
         "option_c": "3",
         "option_d": "4",
         "correct_option": correct_option,
+        "explanation": explanation,
     })
 def add_true_false_question(client, quiz_id, correct_option="A"):
     return client.post(f"/api/quizzes/{quiz_id}/questions", json={
@@ -145,6 +146,76 @@ def test_add_question(client):
     response = add_question(client, quiz_id)
     assert response.status_code == 201
     assert response.get_json()["text"] == "What is 1 + 1?"
+
+def test_practice_answer_correct(client):
+    quiz_id = create_quiz(client)
+    question_response = add_question(client, quiz_id)
+    question_id = question_response.get_json()["id"]
+
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions/{question_id}/check",
+        json={"answer": "B"},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "correct": True,
+        "correct_option": "B",
+        "explanation": "Because 1 + 1 equals 2.",
+    }
+
+def test_practice_answer_incorrect(client):
+    quiz_id = create_quiz(client)
+    question_response = add_question(client, quiz_id)
+    question_id = question_response.get_json()["id"]
+
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions/{question_id}/check",
+        json={"answer": "A"},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "correct": False,
+        "correct_option": "B",
+        "explanation": "Because 1 + 1 equals 2.",
+    }
+
+def test_practice_answer_invalid_option(client):
+    quiz_id = create_quiz(client)
+    question_id = add_question(client, quiz_id).get_json()["id"]
+
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions/{question_id}/check",
+        json={"answer": "E"},
+    )
+
+    assert response.status_code == 400
+
+def test_practice_answer_wrong_quiz(client):
+    quiz_id = create_quiz(client)
+    another_quiz_id = create_quiz(client, title="Another Quiz")
+    question_id = add_question(client, another_quiz_id).get_json()["id"]
+
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/questions/{question_id}/check",
+        json={"answer": "B"},
+    )
+
+    assert response.status_code == 404
+
+def test_practice_does_not_create_attempt(client):
+    quiz_id = create_quiz(client)
+    question_id = add_question(client, quiz_id).get_json()["id"]
+
+    client.post(
+        f"/api/quizzes/{quiz_id}/questions/{question_id}/check",
+        json={"answer": "B"},
+    )
+
+    stats = client.get("/api/stats").get_json()
+
+    assert stats["total_attempts"] == 0
 
 
 def test_add_true_false_question(client):

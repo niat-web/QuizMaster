@@ -1,3 +1,5 @@
+from sqlalchemy import inspect
+
 from app import db
 from app.models import Question, Quiz
 
@@ -258,8 +260,76 @@ SAMPLE_QUIZZES = [
     },
 ]
 
+# Optional explanations for sample questions, indexed by quiz title
+# and question position (starting at 0).
+SAMPLE_EXPLANATIONS = {
+    "Python Basics": {
+        0: "The def keyword is used to define a function in Python.",
+        1: "The print() function displays output on the screen.",
+        2: "The # symbol starts a single-line comment in Python.",
+        3: "A number with a decimal point is represented as a float.",
+        4: "Python lists use square brackets.",
+    },
+        "General Knowledge": {
+        0: "Paris is the capital of France.",
+        1: "There are seven commonly recognized continents.",
+        2: "The Pacific Ocean is the largest ocean.",
+        3: "William Shakespeare wrote Romeo and Juliet.",
+        4: "Japan is known as the Land of the Rising Sun.",
+        5: "A leap year has 366 days.",
+        6: "The United Kingdom uses the Pound Sterling.",
+        7: "Mercury is the closest planet to the Sun.",
+        8: "India became independent on 15 August 1947.",
+        9: "Mandarin Chinese has the most native speakers.",
+    },
+
+    "Science": {
+        0: "Water contains two hydrogen atoms and one oxygen atom (H2O).",
+        1: "Plants absorb carbon dioxide during photosynthesis.",
+        2: "Water boils at approximately 100 degrees Celsius at sea level.",
+        3: "The heart pumps blood throughout the body.",
+        4: "Gravity attracts objects towards the Earth.",
+        5: "Mars is called the Red Planet because of its reddish surface.",
+        6: "Au is the chemical symbol for gold.",
+        7: "A typical adult human skeleton has 206 bones.",
+        8: "The ampere is the SI unit of electric current.",
+        9: "The nucleus contains most of the DNA in a human cell.",
+        10: "The body produces vitamin D in the skin when exposed to sunlight.",
+        11: "An atom is the smallest unit of an element that retains its chemical properties.",
+        12: "The iris controls the amount of light entering the eye.",
+        13: "Light travels at approximately 300,000 kilometres per second in a vacuum.",
+        14: "White blood cells help the body fight infections.",
+    },
+}
 
 def seed_data():
+    # Add the explanation column to existing databases if needed
+    columns = {
+        column["name"]
+        for column in inspect(db.engine).get_columns("question")
+    }
+
+    if "explanation" not in columns:
+        db.session.execute(
+            db.text(
+                "ALTER TABLE question "
+                "ADD COLUMN explanation TEXT NOT NULL DEFAULT ''"
+            )
+        )
+        db.session.commit()
+    # Update explanations for questions in existing sample quizzes
+    for quiz_title, explanations in SAMPLE_EXPLANATIONS.items():
+        existing_quiz = Quiz.query.filter_by(title=quiz_title).first()
+
+        if existing_quiz:
+            for index, explanation in explanations.items():
+                if index < len(existing_quiz.questions):
+                    question = existing_quiz.questions[index]
+
+                    if not question.explanation:
+                        question.explanation = explanation
+
+            db.session.commit()
     # Only add sample data when the database is empty
     if Quiz.query.count() > 0:
         return

@@ -13,6 +13,17 @@
         <p><strong>Difficulty:</strong> <span id="quiz-difficulty"></span></p>
         <p><strong>Questions:</strong> <span id="quiz-question-count"></span></p>
     </div>
+    <div class="quiz-mode">
+    <p><strong>Choose quiz mode:</strong></p>
+    <label>
+        <input type="radio" name="quiz-mode" value="normal" checked>
+        Normal Mode
+    </label>
+    <label>
+        <input type="radio" name="quiz-mode" value="practice">
+        Practice Mode (see explanations after each answer)
+    </label>
+    </div>
     <label for="player-name">Your name</label>
     <input id="player-name" type="text" maxlength="30" required>
     <button type="submit">Start quiz</button>
@@ -22,6 +33,11 @@
     <p id="progress"></p>
     <h2 id="question-text"></h2>
     <div id="options"></div>
+    <div id="practice-feedback" hidden aria-live="polite">
+    <p id="feedback-result"></p>
+    <p id="feedback-correct-answer"></p>
+    <p id="feedback-explanation"></p>
+    </div>
     <div class="buttons">
         <button id="prev-button" type="button">Previous</button>
         <button id="next-button" type="button">Next</button>
