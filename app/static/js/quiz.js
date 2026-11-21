@@ -6,6 +6,7 @@ const optionsDiv = document.getElementById("options");
 const prevButton = document.getElementById("prev-button");
 const nextButton = document.getElementById("next-button");
 const submitButton = document.getElementById("submit-button");
+const progressBar = document.getElementById("progress-bar");
 
 let quiz = null;
 let playerName = "";
@@ -58,6 +59,9 @@ function showQuestion() {
 
     const question = quiz.questions[currentIndex];
     const isLast = currentIndex === quiz.questions.length - 1;
+
+    progressBar.max = quiz.questions.length;
+    progressBar.value = currentIndex + 1;
 
     document.getElementById("progress").textContent =
         "Question " + (currentIndex + 1) + " of " + quiz.questions.length;
