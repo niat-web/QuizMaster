@@ -8,8 +8,13 @@
 
 <form id="start-form" class="card" hidden>
     <p id="quiz-description"></p>
+    <div class="quiz-details" aria-label="Quiz details">
+        <p><strong>Category:</strong> <span id="quiz-category"></span></p>
+        <p><strong>Difficulty:</strong> <span id="quiz-difficulty"></span></p>
+        <p><strong>Questions:</strong> <span id="quiz-question-count"></span></p>
+    </div>
     <label for="player-name">Your name</label>
-    <input id="player-name" type="text" maxlength="50" required>
+    <input id="player-name" type="text" maxlength="30" required>
     <button type="submit">Start quiz</button>
 </form>
 

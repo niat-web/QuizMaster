@@ -13,5 +13,6 @@ if (saved === null) {
     document.getElementById("result-time").textContent =
         "Time taken: " + result.time_taken_seconds + " seconds";
     document.getElementById("leaderboard-link").href = "/leaderboard?quiz=" + result.quiz_id;
+    document.getElementById("history-link").href = "/history?name=" + encodeURIComponent(result.player_name);
     document.getElementById("result-box").hidden = false;
 }

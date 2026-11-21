@@ -23,6 +23,9 @@ async function loadQuiz() {
     quiz = await response.json();
     document.getElementById("quiz-title").textContent = quiz.title;
     document.getElementById("quiz-description").textContent = quiz.description;
+    document.getElementById("quiz-category").textContent = quiz.category;
+    document.getElementById("quiz-difficulty").textContent = quiz.difficulty;
+    document.getElementById("quiz-question-count").textContent = quiz.question_count;
     if (quiz.questions.length === 0) {
         message.textContent = "This quiz has no questions yet.";
         return;
@@ -52,6 +55,7 @@ function showOption(question, letter) {
 }
 
 function showQuestion() {
+
     const question = quiz.questions[currentIndex];
     const isLast = currentIndex === quiz.questions.length - 1;
 
@@ -60,7 +64,12 @@ function showQuestion() {
     document.getElementById("question-text").textContent = question.text;
 
     optionsDiv.innerHTML = "";
-    ["A", "B", "C", "D"].forEach(function (letter) {
+
+    const availableOptions = question.question_type === "true_false"
+        ? ["A", "B"]
+        : ["A", "B", "C", "D"];
+
+    availableOptions.forEach(function (letter) {
         showOption(question, letter);
     });
 
@@ -68,6 +77,14 @@ function showQuestion() {
     nextButton.hidden = isLast;
     submitButton.hidden = !isLast;
 }
+let quizInProgress = false;
+
+window.addEventListener("beforeunload", (event) => {
+    if (quizInProgress) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
+});
 
 async function submitQuiz() {
     const seconds = Math.round((Date.now() - startTime) / 1000);
@@ -87,6 +104,7 @@ async function submitQuiz() {
     }
     result.player_name = playerName;
     sessionStorage.setItem("result", JSON.stringify(result));
+    quizInProgress = false;
     window.location.href = "/result";
 }
 
@@ -101,6 +119,7 @@ startForm.addEventListener("submit", function (event) {
     startForm.hidden = true;
     questionBox.hidden = false;
     startTime = Date.now();
+    quizInProgress = true;
     showQuestion();
 });
 
