@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app import db, limiter
@@ -23,6 +24,10 @@ def get_text(data, field):
     if not isinstance(value, str):
         return ""
     return value.strip()
+
+
+def normalize_question_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip()).lower()
 
 
 @pages.route("/")
@@ -169,6 +174,13 @@ def add_question(quiz_id):
     if correct_option not in OPTIONS[question_type]:
         allowed = " or ".join(OPTIONS[question_type])
         return error(f"correct_option must be {allowed}", 400)
+
+    normalized_text = normalize_question_text(text)
+    existing_questions = db.session.scalars(
+        db.select(Question).filter_by(quiz_id=quiz.id)
+    )
+    if any(normalize_question_text(q.text) == normalized_text for q in existing_questions):
+        return error("This question already exists in this quiz", 409)
 
     question = Question(
         quiz_id=quiz.id,
