@@ -77,15 +77,6 @@ class Question(db.Model):
 
 
 class Attempt(db.Model):
-    __table_args__ = (
-        db.Index(
-            "ix_attempt_leaderboard",
-            "quiz_id",
-            db.desc("score"),
-            "time_taken_seconds",
-        ),
-    )
-
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
     player_name = db.Column(db.String(50), nullable=False)
@@ -93,6 +84,15 @@ class Attempt(db.Model):
     total_questions = db.Column(db.Integer, nullable=False)
     time_taken_seconds = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=utc_now)
+
+    __table_args__ = (
+        db.Index(
+            "ix_attempt_leaderboard",
+            quiz_id,
+            score.desc(),
+            time_taken_seconds,
+        ),
+    )
 
     def to_dict(self):
         return {
