@@ -103,11 +103,12 @@ async function submitQuiz() {
         return;
     }
     result.player_name = playerName;
+    result.quiz_title = quiz.title;
+
     sessionStorage.setItem("result", JSON.stringify(result));
     quizInProgress = false;
     window.location.href = "/result";
 }
-
 startForm.addEventListener("submit", function (event) {
     event.preventDefault();
     playerName = document.getElementById("player-name").value.trim();

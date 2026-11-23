@@ -5,7 +5,11 @@ if (saved === null) {
     message.textContent = "No result found. Take a quiz first.";
 } else {
     const result = JSON.parse(saved);
-    document.getElementById("result-name").textContent = "Well done, " + result.player_name;
+    document.getElementById("result-quiz-title").textContent =
+    "Quiz: " + result.quiz_title;
+
+    document.getElementById("result-name").textContent =
+    "Well done, " + result.player_name;
     document.getElementById("result-score").textContent =
         "You scored " + result.score + " out of " + result.total_questions;
     document.getElementById("result-correct").textContent = "Correct answers: " + result.correct;
