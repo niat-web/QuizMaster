@@ -63,15 +63,35 @@ def history_page():
 
 @api.route("/quizzes")
 def list_quizzes():
-    query = Quiz.query
     category = request.args.get("category")
     difficulty = request.args.get("difficulty")
+
+    question_counts = (
+        db.session.query(
+            Question.quiz_id,
+            db.func.count(Question.id).label("count"),
+        )
+        .group_by(Question.quiz_id)
+        .subquery()
+    )
+
+    query = db.session.query(
+        Quiz,
+        db.func.coalesce(question_counts.c.count, 0).label("question_count"),
+    ).outerjoin(
+        question_counts,
+        Quiz.id == question_counts.c.quiz_id,
+    )
+
     if category:
-        query = query.filter_by(category=category)
+        query = query.filter(Quiz.category == category)
     if difficulty:
-        query = query.filter_by(difficulty=difficulty)
-    quizzes = query.order_by(Quiz.id).all()
-    return jsonify([quiz.to_dict() for quiz in quizzes])
+        query = query.filter(Quiz.difficulty == difficulty)
+
+    results = query.order_by(Quiz.id).all()
+    return jsonify([
+        quiz.to_dict(question_count=int(q_count)) for quiz, q_count in results
+    ])
 
 
 @api.route("/quizzes/<int:quiz_id>")
@@ -238,19 +258,41 @@ def leaderboard(quiz_id):
 
 @api.route("/stats")
 def stats():
+    attempt_stats = (
+        db.session.query(
+            Attempt.quiz_id,
+            db.func.count(Attempt.id).label("attempt_count"),
+            db.func.avg(Attempt.score).label("avg_score"),
+        )
+        .group_by(Attempt.quiz_id)
+        .subquery()
+    )
+
+    rows = (
+        db.session.query(
+            Quiz.id,
+            Quiz.title,
+            db.func.coalesce(
+                attempt_stats.c.attempt_count, 0
+            ).label("attempts"),
+            attempt_stats.c.avg_score,
+        )
+        .outerjoin(attempt_stats, Quiz.id == attempt_stats.c.quiz_id)
+        .order_by(Quiz.id)
+        .all()
+    )
+
     quiz_stats = []
-    for quiz in Quiz.query.order_by(Quiz.id).all():
-        average = db.session.query(db.func.avg(Attempt.score)).filter(
-            Attempt.quiz_id == quiz.id
-        ).scalar()
+    for quiz_id, title, attempts, avg_score in rows:
         quiz_stats.append({
-            "quiz_id": quiz.id,
-            "title": quiz.title,
-            "attempts": len(quiz.attempts),
-            "average_score": round(average or 0, 2),
+            "quiz_id": quiz_id,
+            "title": title,
+            "attempts": int(attempts),
+            "average_score": round(avg_score or 0, 2),
         })
+
     return jsonify({
-        "total_quizzes": Quiz.query.count(),
+        "total_quizzes": len(rows),
         "total_attempts": Attempt.query.count(),
         "quizzes": quiz_stats,
     })
