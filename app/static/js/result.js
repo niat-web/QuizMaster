@@ -15,4 +15,5 @@ if (saved === null) {
     document.getElementById("leaderboard-link").href = "/leaderboard?quiz=" + result.quiz_id;
     document.getElementById("history-link").href = "/history?name=" + encodeURIComponent(result.player_name);
     document.getElementById("result-box").hidden = false;
+    document.getElementById("retry-link").href = "/quiz/" + result.quiz_id;
 }
