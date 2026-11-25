@@ -16,3 +16,9 @@ if (saved === null) {
     document.getElementById("history-link").href = "/history?name=" + encodeURIComponent(result.player_name);
     document.getElementById("result-box").hidden = false;
 }
+const printBtn = document.getElementById("print-btn");
+if (printBtn) {
+    printBtn.addEventListener("click", () => {
+        window.print();
+    });
+}
