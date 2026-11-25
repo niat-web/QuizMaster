@@ -1,5 +1,8 @@
+
 const quizList = document.getElementById("quiz-list");
 const message = document.getElementById("message");
+const searchInput = document.getElementById("search-input");
+const noResults = document.getElementById("no-results");
 
 function addLine(parent, tag, text, className) {
     const element = document.createElement(tag);
@@ -13,6 +16,7 @@ function addLine(parent, tag, text, className) {
 function showQuiz(quiz) {
     const card = document.createElement("div");
     card.className = "card";
+    card.dataset.title = quiz.title;
     addLine(card, "h2", quiz.title);
     addLine(card, "p", quiz.description);
     addLine(card, "p", "Category: " + quiz.category);
@@ -27,17 +31,59 @@ function showQuiz(quiz) {
     quizList.appendChild(card);
 }
 
-async function loadQuizzes() {
-    const response = await fetch("/api/quizzes");
-    if (!response.ok) {
-        message.textContent = "Could not load quizzes.";
+function filterQuizzes() {
+    if (!searchInput) {
         return;
     }
-    const quizzes = await response.json();
-    if (quizzes.length === 0) {
-        message.textContent = "No quizzes yet.";
+    const query = searchInput.value.trim().toLowerCase();
+    const cards = quizList.querySelectorAll(".card");
+    let visibleCount = 0;
+
+    cards.forEach(function (card) {
+        const title = (card.dataset.title || (card.querySelector("h2") ? card.querySelector("h2").textContent : "")).toLowerCase();
+        if (query === "" || title.includes(query)) {
+            card.hidden = false;
+            visibleCount++;
+        } else {
+            card.hidden = true;
+        }
+    });
+
+    if (noResults) {
+        if (cards.length > 0 && query !== "" && visibleCount === 0) {
+            noResults.hidden = false;
+        } else {
+            noResults.hidden = true;
+        }
     }
-    quizzes.forEach(showQuiz);
+}
+
+if (searchInput) {
+    searchInput.addEventListener("input", filterQuizzes);
+}
+
+async function loadQuizzes() {
+    message.textContent = "Loading quizzes...";
+
+    try {
+        const response = await fetch("/api/quizzes");
+        if (!response.ok) {
+            message.textContent = "Could not load quizzes.";
+            return;
+        }
+
+        const quizzes = await response.json();
+        message.textContent = "";
+
+        if (quizzes.length === 0) {
+            message.textContent = "No quizzes yet.";
+        }
+
+        quizzes.forEach(showQuiz);
+        filterQuizzes();
+    } catch (error) {
+        message.textContent = "Could not load quizzes.";
+    }
 }
 
 loadQuizzes();

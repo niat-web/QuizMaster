@@ -1,13 +1,16 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
-from app import db
+from app import db, limiter
 from app.models import Attempt, Question, Quiz
 
 api = Blueprint("api", __name__, url_prefix="/api")
 pages = Blueprint("pages", __name__)
 
 DIFFICULTIES = ["easy", "medium", "hard"]
-OPTIONS = ["A", "B", "C", "D"]
+OPTIONS = {
+    "multiple_choice": ["A", "B", "C", "D"],
+    "true_false": ["A", "B"],
+}
 
 
 def error(message, status):
@@ -41,18 +44,54 @@ def result_page():
 def leaderboard_page():
     return render_template("leaderboard.html")
 
+@pages.app_errorhandler(404)
+def not_found(e):
+    if request.path.startswith("/api/"):
+        return error("Not found", 404)
+    return render_template("404.html"), 404
+
+
+@pages.route("/create")
+def create_page():
+    return render_template("create.html")
+
+
+@pages.route("/history")
+def history_page():
+    return render_template("history.html")
+
 
 @api.route("/quizzes")
 def list_quizzes():
-    query = Quiz.query
     category = request.args.get("category")
     difficulty = request.args.get("difficulty")
+
+    question_counts = (
+        db.session.query(
+            Question.quiz_id,
+            db.func.count(Question.id).label("count"),
+        )
+        .group_by(Question.quiz_id)
+        .subquery()
+    )
+
+    query = db.session.query(
+        Quiz,
+        db.func.coalesce(question_counts.c.count, 0).label("question_count"),
+    ).outerjoin(
+        question_counts,
+        Quiz.id == question_counts.c.quiz_id,
+    )
+
     if category:
-        query = query.filter_by(category=category)
+        query = query.filter(Quiz.category == category)
     if difficulty:
-        query = query.filter_by(difficulty=difficulty)
-    quizzes = query.order_by(Quiz.id).all()
-    return jsonify([quiz.to_dict() for quiz in quizzes])
+        query = query.filter(Quiz.difficulty == difficulty)
+
+    results = query.order_by(Quiz.id).all()
+    return jsonify([
+        quiz.to_dict(question_count=int(q_count)) for quiz, q_count in results
+    ])
 
 
 @api.route("/quizzes/<int:quiz_id>")
@@ -75,6 +114,10 @@ def create_quiz():
     if difficulty not in DIFFICULTIES:
         return error("Difficulty must be easy, medium or hard", 400)
 
+    existing_quiz = Quiz.query.filter(db.func.lower(Quiz.title) == title.lower()).first()
+    if existing_quiz:
+        return error("A quiz with this title already exists", 400)
+
     quiz = Quiz(
         title=title,
         description=get_text(data, "description"),
@@ -86,6 +129,7 @@ def create_quiz():
     return jsonify(quiz.to_dict()), 201
 
 
+
 @api.route("/quizzes/<int:quiz_id>/questions", methods=["POST"])
 def add_question(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
@@ -94,28 +138,56 @@ def add_question(quiz_id):
 
     data = request.get_json(silent=True) or {}
     text = get_text(data, "text")
-    options = [get_text(data, "option_" + letter) for letter in "abcd"]
+    raw_question_type = data.get("question_type", "multiple_choice")
+
+    if not isinstance(raw_question_type, str):
+        return error("question_type must be a string", 400)
+
+    question_type = raw_question_type.strip()
+
+    if question_type not in OPTIONS:
+        return error(
+            "question_type must be multiple_choice or true_false",
+            400
+        )
+    options = {
+        letter: get_text(data, "option_" + letter.lower())
+        for letter in OPTIONS[question_type]
+    }
+
+    if not text:
+        return error("Question text is required", 400)
+
+    if any(not value for value in options.values()):
+        return error("All options for this question type are required", 400)
+
+    if question_type == "true_false":
+        if get_text(data, "option_c") or get_text(data, "option_d"):
+            return error("True/false questions can only have two options", 400)
+
     correct_option = get_text(data, "correct_option")
-    if not text or "" in options:
-        return error("Question text and all 4 options are required", 400)
-    if correct_option not in OPTIONS:
-        return error("correct_option must be A, B, C or D", 400)
+    if correct_option not in OPTIONS[question_type]:
+        allowed = " or ".join(OPTIONS[question_type])
+        return error(f"correct_option must be {allowed}", 400)
 
     question = Question(
         quiz_id=quiz.id,
         text=text,
-        option_a=options[0],
-        option_b=options[1],
-        option_c=options[2],
-        option_d=options[3],
+        question_type=question_type,
+        option_a=options["A"],
+        option_b=options["B"],
+        option_c=options.get("C"),
+        option_d=options.get("D"),
         correct_option=correct_option,
     )
+
     db.session.add(question)
     db.session.commit()
     return jsonify(question.to_dict()), 201
 
 
 @api.route("/quizzes/<int:quiz_id>/submit", methods=["POST"])
+@limiter.limit(lambda: current_app.config["SUBMIT_RATE_LIMIT"])
 def submit_quiz(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
     if quiz is None:
@@ -129,15 +201,24 @@ def submit_quiz(quiz_id):
     time_taken = data.get("time_taken_seconds", 0)
     if not player_name:
         return error("Player name is required", 400)
+    if len(player_name) > 30:
+        return error("Player name cannot exceed 30 characters", 400)
     if not isinstance(answers, dict):
         return error("Answers must be an object like {\"1\": \"A\"}", 400)
-    if not isinstance(time_taken, int) or time_taken < 0:
+    if isinstance(time_taken, bool) or not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
-    # Answers are keyed by question id; unanswered questions count as wrong
+       # Answers are keyed by question id; unanswered questions count as wrong.
+    # Only valid options for each question type can receive credit.
     score = 0
     for question in quiz.questions:
-        if answers.get(str(question.id)) == question.correct_option:
+        submitted_answer = answers.get(str(question.id))
+        valid_options = OPTIONS.get(question.question_type, [])
+
+        if (
+            submitted_answer in valid_options
+            and submitted_answer == question.correct_option
+        ):
             score += 1
     total = len(quiz.questions)
 
@@ -177,19 +258,58 @@ def leaderboard(quiz_id):
 
 @api.route("/stats")
 def stats():
+    attempt_stats = (
+        db.session.query(
+            Attempt.quiz_id,
+            db.func.count(Attempt.id).label("attempt_count"),
+            db.func.avg(Attempt.score).label("avg_score"),
+        )
+        .group_by(Attempt.quiz_id)
+        .subquery()
+    )
+
+    rows = (
+        db.session.query(
+            Quiz.id,
+            Quiz.title,
+            db.func.coalesce(
+                attempt_stats.c.attempt_count, 0
+            ).label("attempts"),
+            attempt_stats.c.avg_score,
+        )
+        .outerjoin(attempt_stats, Quiz.id == attempt_stats.c.quiz_id)
+        .order_by(Quiz.id)
+        .all()
+    )
+
     quiz_stats = []
-    for quiz in Quiz.query.order_by(Quiz.id).all():
-        average = db.session.query(db.func.avg(Attempt.score)).filter(
-            Attempt.quiz_id == quiz.id
-        ).scalar()
+    for quiz_id, title, attempts, avg_score in rows:
         quiz_stats.append({
-            "quiz_id": quiz.id,
-            "title": quiz.title,
-            "attempts": len(quiz.attempts),
-            "average_score": round(average or 0, 2),
+            "quiz_id": quiz_id,
+            "title": title,
+            "attempts": int(attempts),
+            "average_score": round(avg_score or 0, 2),
         })
+
     return jsonify({
-        "total_quizzes": Quiz.query.count(),
+        "total_quizzes": len(rows),
         "total_attempts": Attempt.query.count(),
         "quizzes": quiz_stats,
     })
+
+
+@api.route("/players/<player_name>/attempts")
+def player_attempts(player_name):
+    name = (player_name or "").strip()
+    if not name:
+        return error("Player name is required", 400)
+    attempts = (
+        Attempt.query.filter(
+            db.func.lower(Attempt.player_name) == name.lower()
+        )
+        .order_by(Attempt.created_at.desc(), Attempt.id.desc())
+        .all()
+    )
+    return jsonify([attempt.to_dict() for attempt in attempts])
+
+

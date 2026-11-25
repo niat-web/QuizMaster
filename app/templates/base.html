@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,14 +8,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body {% block body_attrs %}{% endblock %}>
+    <a class ="skip-link" href="#main-content">
+        Skip to main content
+    </a>
     <header>
         <a class="logo" href="{{ url_for('pages.index') }}">QuizMaster</a>
         <nav>
             <a href="{{ url_for('pages.index') }}">Quizzes</a>
             <a href="{{ url_for('pages.leaderboard_page') }}">Leaderboard</a>
+            <a href="{{ url_for('pages.history_page') }}">History</a>
+            <a href="{{ url_for('pages.create_page') }}">Create quiz</a>
         </nav>
     </header>
-    <main>
+    <main id="main-content" tabindex="-1">
         {% block content %}{% endblock %}
     </main>
     {% block scripts %}{% endblock %}
