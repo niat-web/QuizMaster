@@ -129,6 +129,38 @@ def create_quiz():
     return jsonify(quiz.to_dict()), 201
 
 
+@api.route("/quizzes/<int:quiz_id>", methods=["PUT"])
+def update_quiz(quiz_id):
+    quiz = db.session.get(Quiz, quiz_id)
+    if quiz is None:
+        return error("Quiz not found", 404)
+
+    data = request.get_json(silent=True) or {}
+    title = get_text(data, "title")
+    difficulty = get_text(data, "difficulty") or "easy"
+    if not title:
+        return error("Title is required", 400)
+    if difficulty not in DIFFICULTIES:
+        return error("Difficulty must be easy, medium or hard", 400)
+
+    quiz.title = title
+    quiz.description = get_text(data, "description")
+    quiz.category = get_text(data, "category") or "General"
+    quiz.difficulty = difficulty
+    db.session.commit()
+    return jsonify(quiz.to_dict())
+
+
+@api.route("/quizzes/<int:quiz_id>", methods=["DELETE"])
+def delete_quiz(quiz_id):
+    quiz = db.session.get(Quiz, quiz_id)
+    if quiz is None:
+        return error("Quiz not found", 404)
+
+    db.session.delete(quiz)
+    db.session.commit()
+    return jsonify({"message": "Quiz deleted successfully"})
+
 
 @api.route("/quizzes/<int:quiz_id>/questions", methods=["POST"])
 def add_question(quiz_id):

@@ -131,6 +131,48 @@ def test_get_quiz_not_found(client):
     assert response.get_json() == {"error": "Quiz not found"}
 
 
+def test_update_quiz(client):
+    quiz_id = create_quiz(client)
+    response = client.put(f"/api/quizzes/{quiz_id}", json={
+        "title": "Updated Quiz",
+        "description": "Updated description",
+        "category": "Science",
+        "difficulty": "hard",
+    })
+    assert response.status_code == 200
+    assert response.get_json()["title"] == "Updated Quiz"
+
+    response = client.get(f"/api/quizzes/{quiz_id}")
+    assert response.status_code == 200
+    assert response.get_json()["title"] == "Updated Quiz"
+
+
+def test_update_quiz_empty_title(client):
+    quiz_id = create_quiz(client)
+    response = client.put(f"/api/quizzes/{quiz_id}", json={"title": "  "})
+    assert response.status_code == 400
+
+
+def test_update_quiz_not_found(client):
+    response = client.put("/api/quizzes/999", json={"title": "Updated Quiz"})
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
+def test_delete_quiz(client):
+    quiz_id = create_quiz(client)
+
+    response = client.delete(f"/api/quizzes/{quiz_id}")
+    assert response.status_code == 200
+    assert client.get(f"/api/quizzes/{quiz_id}").status_code == 404
+
+
+def test_delete_quiz_not_found(client):
+    response = client.delete("/api/quizzes/999")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
 def test_get_quiz_hides_correct_answers(client):
     quiz_id = create_quiz(client)
     add_question(client, quiz_id)
