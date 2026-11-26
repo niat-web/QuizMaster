@@ -93,18 +93,21 @@ FLASK_DEBUG: Set to 1 or true to enable Flask debug mode during development. It 
 
 All endpoints are under `/api` and use JSON.
 
-> **Looking for ready-to-run curl examples and error schemas?**  
+All endpoints are under `/api` and use JSON.
+
+> **Looking for ready-to-run curl examples and error schemas?**
 > Check out the complete [API Documentation (docs/api.md)](docs/api.md) for curl commands (macOS, Linux, and Windows), request/response payloads, and error codes for every endpoint.
 
-| Method | Endpoint                        | Description                                  |
-|--------|---------------------------------|----------------------------------------------|
-| GET    | /api/quizzes                    | List quizzes. Optional `category` and `difficulty` filters |
-| GET    | /api/quizzes/<id>               | One quiz with its questions (no answers)     |
-| POST   | /api/quizzes                    | Create a quiz                                |
-| POST   | /api/quizzes/<id>/questions     | Add a question to a quiz                     |
-| POST   | /api/quizzes/<id>/submit        | Submit answers and get the result            |
-| GET    | /api/quizzes/<id>/leaderboard   | Top 10 attempts for a quiz                   |
-| GET    | /api/stats                      | Total quizzes, total attempts, average score per quiz |
+| Method | Endpoint                                   | Description                                                  |
+|--------|--------------------------------------------|--------------------------------------------------------------|
+| GET    | /api/quizzes                               | List quizzes. Optional `category` and `difficulty` filters   |
+| GET    | /api/quizzes/<id>                          | One quiz with its questions (no answers)                     |
+| POST   | /api/quizzes                               | Create a quiz                                                |
+| POST   | /api/quizzes/<id>/questions                | Add a question to a quiz                                     |
+| DELETE | /api/quizzes/<id>/questions/<question_id>  | Delete a question from a quiz                                |
+| POST   | /api/quizzes/<id>/submit                   | Submit answers and get the result                            |
+| GET    | /api/quizzes/<id>/leaderboard              | Top 10 attempts for a quiz                                   |
+| GET    | /api/stats                                 | Total quizzes, total attempts, average score per quiz        |
 
 Example body for submitting answers (keys are question ids):
 

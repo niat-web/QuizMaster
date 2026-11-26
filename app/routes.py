@@ -186,6 +186,21 @@ def add_question(quiz_id):
     return jsonify(question.to_dict()), 201
 
 
+@api.route("/quizzes/<int:quiz_id>/questions/<int:question_id>", methods=["DELETE"])
+def delete_question(quiz_id, question_id):
+    quiz = db.session.get(Quiz, quiz_id)
+    if quiz is None:
+        return error("Quiz not found", 404)
+
+    question = db.session.get(Question, question_id)
+    if question is None or question.quiz_id != quiz.id:
+        return error("Question not found", 404)
+
+    db.session.delete(question)
+    db.session.commit()
+    return jsonify({"message": "Question deleted"})
+
+
 @api.route("/quizzes/<int:quiz_id>/submit", methods=["POST"])
 @limiter.limit(lambda: current_app.config["SUBMIT_RATE_LIMIT"])
 def submit_quiz(quiz_id):
