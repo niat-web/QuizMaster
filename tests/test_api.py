@@ -357,7 +357,6 @@ def test_submit_quiz_not_found(client):
     })
     assert response.status_code == 404
 
-
 def test_submit_quiz_rate_limit(client, app):
     app.config["SUBMIT_RATE_LIMIT"] = "2 per minute"
     quiz_id = create_quiz(client)
@@ -377,6 +376,97 @@ def test_submit_quiz_rate_limit(client, app):
         "error": "Too many submissions. Please try again later."
     }
     assert response.headers["Retry-After"].isdigit()
+
+def test_submit_quiz_without_questions(client):
+    quiz_id = create_quiz(client)
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {},
+    })
+    assert response.status_code == 400
+
+
+def test_submit_quiz_with_empty_answers(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    add_question(client, quiz_id)
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {},
+    })
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["score"] == 0
+    assert result["wrong"] == 2
+
+
+def test_submit_quiz_with_partial_answers(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "B")
+    add_question(client, quiz_id, "A")
+    questions = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"]
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(questions[0]["id"]): "B"},
+    })
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["score"] == 1
+    assert result["wrong"] == 1
+
+
+def test_submit_quiz_ignores_unknown_question_ids(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "A")
+    own_question_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+    other_quiz_id = create_quiz(client, "Other Quiz")
+    add_question(client, other_quiz_id, "B")
+    unknown_question_id = client.get(f"/api/quizzes/{other_quiz_id}").get_json()["questions"][0]["id"]
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {
+            str(own_question_id): "B",
+            str(unknown_question_id): "B",
+        },
+    })
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["score"] == 0
+    assert result["wrong"] == 1
+
+
+def test_submit_quiz_negative_time_taken(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {},
+        "time_taken_seconds": -1,
+    })
+    assert response.status_code == 400
+
+
+def test_submit_quiz_player_name_only_spaces(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "   ",
+        "answers": {},
+    })
+    assert response.status_code == 400
+
+
+def test_submit_quiz_answers_as_list(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": [],
+    })
+    assert response.status_code == 400
 
 
 def test_leaderboard_is_sorted_and_limited(client):
