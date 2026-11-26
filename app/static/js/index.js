@@ -1,5 +1,6 @@
 
 const quizList = document.getElementById("quiz-list");
+const quizOfTheDayContainer = document.getElementById("quiz-of-the-day");
 const message = document.getElementById("message");
 const searchInput = document.getElementById("search-input");
 const noResults = document.getElementById("no-results");
@@ -31,8 +32,52 @@ function showQuiz(quiz) {
     quizList.appendChild(card);
 }
 
-function filterQuizzes() {
-    if (!searchInput) {
+function showQuizOfTheDay(quiz) {
+    if (!quizOfTheDayContainer) {
+        return;
+    }
+    quizOfTheDayContainer.innerHTML = "";
+
+    const card = document.createElement("div");
+    card.className = "card highlighted-card highlighted quiz-of-the-day";
+
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = "Quiz of the day";
+    card.appendChild(badge);
+
+    addLine(card, "h2", quiz.title);
+    addLine(card, "p", quiz.description);
+    addLine(card, "p", "Category: " + quiz.category);
+    addLine(card, "p", "Difficulty: " + quiz.difficulty);
+    addLine(card, "p", "Questions: " + quiz.question_count);
+
+    const link = document.createElement("a");
+    link.className = "button";
+    link.href = "/quiz/" + quiz.id;
+    link.textContent = "Open quiz";
+    card.appendChild(link);
+
+    quizOfTheDayContainer.appendChild(card);
+}
+
+async function loadQuizOfTheDay() {
+    try {
+        const response = await fetch("/api/quiz-of-the-day");
+        if (!response.ok) {
+            return;
+        }
+        const quiz = await response.json();
+        showQuizOfTheDay(quiz);
+    } catch {
+        // Keep home page working if the request fails
+    }
+}
+
+async function loadQuizzes() {
+    const response = await fetch("/api/quizzes");
+    if (!response.ok) {
+        message.textContent = "Could not load quizzes.";
         return;
     }
     const query = searchInput.value.trim().toLowerCase();
@@ -86,4 +131,5 @@ async function loadQuizzes() {
     }
 }
 
+loadQuizOfTheDay();
 loadQuizzes();

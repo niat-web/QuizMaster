@@ -7,6 +7,16 @@ def utc_now():
     return datetime.now(timezone.utc)
 
 
+def format_datetime(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.isoformat()
+
+
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
@@ -29,12 +39,8 @@ class Quiz(db.Model):
             "description": self.description,
             "category": self.category,
             "difficulty": self.difficulty,
-            "question_count": (
-                len(self.questions)
-                if question_count is None
-                else question_count
-            ),
-            "created_at": self.created_at.isoformat(),
+            "question_count": len(self.questions),
+            "created_at": format_datetime(self.created_at),
         }
 
 
@@ -103,5 +109,5 @@ class Attempt(db.Model):
             "score": self.score,
             "total_questions": self.total_questions,
             "time_taken_seconds": self.time_taken_seconds,
-            "created_at": self.created_at.isoformat(),
+            "created_at": format_datetime(self.created_at),
         }

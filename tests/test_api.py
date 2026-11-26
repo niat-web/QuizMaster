@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
