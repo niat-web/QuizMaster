@@ -33,7 +33,7 @@ async function loadHistory(name) {
 
     message.textContent = "";
     try {
-        const response = await fetch("/api/players/" + encodeURIComponent(trimmed) + "/attempts");
+        const response = await fetch("/api/players/attempts?player=" + encodeURIComponent(trimmed));
         if (!response.ok) {
             const data = await response.json().catch(function () { return {}; });
             message.textContent = data.error || "Could not load history.";

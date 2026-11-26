@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app import db, limiter
@@ -15,6 +17,10 @@ OPTIONS = {
 
 def error(message, status):
     return jsonify({"error": message}), status
+
+
+def get_today():
+    return date.today()
 
 
 def get_text(data, field):
@@ -92,6 +98,17 @@ def list_quizzes():
     return jsonify([
         quiz.to_dict(question_count=int(q_count)) for quiz, q_count in results
     ])
+
+
+@api.route("/quiz-of-the-day")
+def quiz_of_the_day():
+    quizzes = Quiz.query.order_by(Quiz.id).all()
+    if not quizzes:
+        return error("Quiz not found", 404)
+    today = get_today()
+    day_num = today.toordinal() if hasattr(today, "toordinal") else int(today)
+    quiz = quizzes[day_num % len(quizzes)]
+    return jsonify(quiz.to_dict())
 
 
 @api.route("/quizzes/<int:quiz_id>")
@@ -298,9 +315,10 @@ def stats():
     })
 
 
-@api.route("/players/<player_name>/attempts")
-def player_attempts(player_name):
-    name = (player_name or "").strip()
+@api.route("/players/<path:player_name>/attempts")
+@api.route("/players/attempts")
+def player_attempts(player_name=None):
+    name = (request.args.get("player") or request.args.get("name") or player_name or "").strip()
     if not name:
         return error("Player name is required", 400)
     attempts = (

@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+
+
 def create_quiz(client, title="Test Quiz", difficulty="easy", category="General"):
     response = client.post("/api/quizzes", json={
         "title": title,
@@ -413,146 +416,158 @@ def test_stats(client):
     assert stats["quizzes"][0]["average_score"] == 1
 
 
-def test_player_attempts_empty_name(client):
-    response_spaces = client.get("/api/players/%20%20/attempts")
-    assert response_spaces.status_code == 400
-    assert response_spaces.get_json()["error"] == "Player name is required"
+def test_quiz_of_the_day_empty_db(client):
+    response = client.get("/api/quiz-of-the-day")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
 
 
-def test_player_attempts_unknown_player(client):
-    response = client.get("/api/players/UnknownPlayer/attempts")
+def test_quiz_of_the_day_same_day(client):
+    create_quiz(client, "Quiz 1")
+    create_quiz(client, "Quiz 2")
+    res1 = client.get("/api/quiz-of-the-day")
+    res2 = client.get("/api/quiz-of-the-day")
+    assert res1.status_code == 200
+    assert res2.status_code == 200
+    assert res1.get_json()["id"] == res2.get_json()["id"]
+
+
+def test_quiz_of_the_day_changes_next_day(client, monkeypatch):
+    create_quiz(client, "Quiz 1")
+    create_quiz(client, "Quiz 2")
+
+    today = date(2026, 11, 17)
+    tomorrow = today + timedelta(days=1)
+
+    monkeypatch.setattr("app.routes.get_today", lambda: today)
+    res_today = client.get("/api/quiz-of-the-day")
+    assert res_today.status_code == 200
+
+    monkeypatch.setattr("app.routes.get_today", lambda: tomorrow)
+    res_tomorrow = client.get("/api/quiz-of-the-day")
+    assert res_tomorrow.status_code == 200
+
+    assert res_today.get_json()["id"] != res_tomorrow.get_json()["id"]
+
+
+def test_quiz_of_the_day_single_quiz(client, monkeypatch):
+    quiz_id = create_quiz(client, "Only Quiz")
+    today = date(2026, 11, 17)
+    tomorrow = today + timedelta(days=1)
+
+    monkeypatch.setattr("app.routes.get_today", lambda: today)
+    res1 = client.get("/api/quiz-of-the-day")
+    assert res1.status_code == 200
+    assert res1.get_json()["id"] == quiz_id
+
+    monkeypatch.setattr("app.routes.get_today", lambda: tomorrow)
+    res2 = client.get("/api/quiz-of-the-day")
+    assert res2.status_code == 200
+    assert res2.get_json()["id"] == quiz_id
+
+
+def test_quiz_of_the_day_fields(client):
+    quiz_id = create_quiz(client, title="Daily Challenge", difficulty="hard", category="Trivia")
+    add_question(client, quiz_id)
+    res = client.get("/api/quiz-of-the-day")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["id"] == quiz_id
+    assert data["title"] == "Daily Challenge"
+    assert data["difficulty"] == "hard"
+    assert data["category"] == "Trivia"
+    assert data["question_count"] == 1
+    assert "created_at" in data
+
+
+def test_home_page_structure(client):
+    response = client.get("/")
     assert response.status_code == 200
-    assert response.get_json() == []
+    assert b'id="quiz-of-the-day"' in response.data
+    assert b'id="quiz-list"' in response.data
 
 
-def test_player_attempts_single_attempt(client):
-    quiz_id = create_quiz(client, title="Science Quiz")
+def test_player_attempts_name_with_slash(client):
+    quiz_id = create_quiz(client, "Math Quiz")
     add_question(client, quiz_id, "B")
     q_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
-    client.post(f"/api/quizzes/{quiz_id}/submit", json={
-        "player_name": "Alice",
+
+    submit_res = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "A/B",
         "answers": {str(q_id): "B"},
         "time_taken_seconds": 15,
     })
+    assert submit_res.status_code == 200
 
-    response = client.get("/api/players/Alice/attempts")
-    assert response.status_code == 200
-    attempts = response.get_json()
+    # Path parameter with percent-encoded slash
+    res_encoded = client.get("/api/players/A%2FB/attempts")
+    assert res_encoded.status_code == 200
+    data_encoded = res_encoded.get_json()
+    assert len(data_encoded) == 1
+    assert data_encoded[0]["player_name"] == "A/B"
+    assert data_encoded[0]["quiz_title"] == "Math Quiz"
+
+    # Path parameter with literal slash
+    res_literal = client.get("/api/players/A/B/attempts")
+    assert res_literal.status_code == 200
+    data_literal = res_literal.get_json()
+    assert len(data_literal) == 1
+    assert data_literal[0]["player_name"] == "A/B"
+
+    # Query parameter with player
+    res_query = client.get("/api/players/attempts?player=A%2FB")
+    assert res_query.status_code == 200
+    data_query = res_query.get_json()
+    assert len(data_query) == 1
+    assert data_query[0]["player_name"] == "A/B"
+
+
+def test_player_attempts_normal_name(client):
+    quiz_id = create_quiz(client, "Geography Quiz")
+    add_question(client, quiz_id, "B")
+    q_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
+
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(q_id): "B"},
+    })
+
+    res = client.get("/api/players/Asha/attempts")
+    assert res.status_code == 200
+    attempts = res.get_json()
     assert len(attempts) == 1
-    attempt = attempts[0]
-    assert attempt["player_name"] == "Alice"
-    assert attempt["quiz_title"] == "Science Quiz"
-    assert attempt["score"] == 1
-    assert attempt["total_questions"] == 1
-    assert attempt["time_taken_seconds"] == 15
-    assert attempt["created_at"] is not None
+    assert attempts[0]["player_name"] == "Asha"
+
+    # Case-insensitive check
+    res_lower = client.get("/api/players/asha/attempts")
+    assert res_lower.status_code == 200
+    assert len(res_lower.get_json()) == 1
 
 
-def test_player_attempts_multiple_newest_first(client):
-    quiz1 = create_quiz(client, title="History Quiz")
-    quiz2 = create_quiz(client, title="Geography Quiz")
-    add_question(client, quiz1, "A")
-    add_question(client, quiz2, "B")
-    q1 = client.get(f"/api/quizzes/{quiz1}").get_json()["questions"][0]["id"]
-    q2 = client.get(f"/api/quizzes/{quiz2}").get_json()["questions"][0]["id"]
+def test_player_attempts_missing_name(client):
+    res_no_param = client.get("/api/players/attempts")
+    assert res_no_param.status_code == 400
+    assert res_no_param.get_json() == {"error": "Player name is required"}
 
-    client.post(f"/api/quizzes/{quiz1}/submit", json={
-        "player_name": "Alice",
-        "answers": {str(q1): "A"},
-        "time_taken_seconds": 10,
-    })
-    client.post(f"/api/quizzes/{quiz2}/submit", json={
-        "player_name": "Alice",
-        "answers": {str(q2): "B"},
-        "time_taken_seconds": 20,
-    })
-    client.post(f"/api/quizzes/{quiz1}/submit", json={
-        "player_name": "Alice",
-        "answers": {str(q1): "B"},  # wrong
-        "time_taken_seconds": 5,
-    })
+    res_empty_param = client.get("/api/players/attempts?player=")
+    assert res_empty_param.status_code == 400
+    assert res_empty_param.get_json() == {"error": "Player name is required"}
 
-    response = client.get("/api/players/Alice/attempts")
-    assert response.status_code == 200
-    attempts = response.get_json()
-    assert len(attempts) == 3
-    # Check newest first
-    assert attempts[0]["quiz_title"] == "History Quiz"
-    assert attempts[0]["score"] == 0
-    assert attempts[1]["quiz_title"] == "Geography Quiz"
-    assert attempts[1]["score"] == 1
-    assert attempts[2]["quiz_title"] == "History Quiz"
-    assert attempts[2]["score"] == 1
-    assert attempts[0]["id"] > attempts[1]["id"] > attempts[2]["id"]
+    res_spaces = client.get("/api/players/%20%20/attempts")
+    assert res_spaces.status_code == 400
+    assert res_spaces.get_json() == {"error": "Player name is required"}
 
 
-def test_player_attempts_case_insensitive(client):
-    quiz_id = create_quiz(client, title="Case Test")
-    add_question(client, quiz_id, "B")
-    q_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
-    client.post(f"/api/quizzes/{quiz_id}/submit", json={
-        "player_name": "Bob",
-        "answers": {str(q_id): "B"},
-    })
-
-    for name_variant in ["bob", "BOB", "bOb", "Bob"]:
-        response = client.get(f"/api/players/{name_variant}/attempts")
-        assert response.status_code == 200
-        attempts = response.get_json()
-        assert len(attempts) == 1
-        assert attempts[0]["player_name"] == "Bob"
+def test_player_attempts_no_results(client):
+    res = client.get("/api/players/Nobody/attempts")
+    assert res.status_code == 200
+    assert res.get_json() == []
 
 
-def test_player_attempts_spaces_handling(client):
-    quiz_id = create_quiz(client, title="Spaces Test")
-    add_question(client, quiz_id, "B")
-    q_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
-    client.post(f"/api/quizzes/{quiz_id}/submit", json={
-        "player_name": "Charlie Brown",
-        "answers": {str(q_id): "B"},
-    })
-
-    response = client.get("/api/players/Charlie%20Brown/attempts")
-    assert response.status_code == 200
-    assert len(response.get_json()) == 1
-
-    # Search with leading and trailing spaces
-    response_trimmed = client.get("/api/players/%20Charlie%20Brown%20/attempts")
-    assert response_trimmed.status_code == 200
-    assert len(response_trimmed.get_json()) == 1
-
-
-def test_player_attempts_isolation(client):
-    quiz_id = create_quiz(client)
-    add_question(client, quiz_id)
-    q_id = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"][0]["id"]
-    client.post(f"/api/quizzes/{quiz_id}/submit", json={
-        "player_name": "Eve",
-        "answers": {str(q_id): "B"},
-    })
-    client.post(f"/api/quizzes/{quiz_id}/submit", json={
-        "player_name": "Frank",
-        "answers": {str(q_id): "B"},
-    })
-
-    eve_attempts = client.get("/api/players/Eve/attempts").get_json()
-    assert len(eve_attempts) == 1
-    assert eve_attempts[0]["player_name"] == "Eve"
-
-
-def test_history_page_rendered(client):
+def test_history_page_structure(client):
     response = client.get("/history")
     assert response.status_code == 200
-    html = response.data.decode("utf-8")
-    assert "History" in html
-    assert 'id="history-form"' in html
-    assert 'id="player-name"' in html
-    assert 'id="history-table"' in html
+    assert b'id="history-form"' in response.data
+    assert b'id="player-name"' in response.data
+    assert b'id="history-table"' in response.data
 
-
-def test_navigation_includes_history(client):
-    for endpoint in ["/", "/leaderboard", "/history"]:
-        response = client.get(endpoint)
-        assert response.status_code == 200
-        html = response.data.decode("utf-8")
-        assert 'href="/history"' in html

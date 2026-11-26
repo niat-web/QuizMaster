@@ -1,5 +1,6 @@
 
 const quizList = document.getElementById("quiz-list");
+const quizOfTheDayContainer = document.getElementById("quiz-of-the-day");
 const message = document.getElementById("message");
 const searchInput = document.getElementById("search-input");
 const noResults = document.getElementById("no-results");
@@ -86,4 +87,5 @@ async function loadQuizzes() {
     }
 }
 
+loadQuizOfTheDay();
 loadQuizzes();
