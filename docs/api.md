@@ -20,7 +20,8 @@ Base URL when running locally: `http://127.0.0.1:5000`
   - [4. Add a Question (`POST /api/quizzes/<id>/questions`)](#4-add-a-question-post-apiquizzesidquestions)
   - [5. Submit Quiz Answers (`POST /api/quizzes/<id>/submit`)](#5-submit-quiz-answers-post-apiquizzesidsubmit)
   - [6. Quiz Leaderboard (`GET /api/quizzes/<id>/leaderboard`)](#6-quiz-leaderboard-get-apiquizzesidleaderboard)
-  - [7. Platform Statistics (`GET /api/stats`)](#7-platform-statistics-get-apistats)
+  - [7. Quiz Statistics (`GET /api/quizzes/<id>/stats`)](#7-quiz-statistics-get-apiquizzesidstats)
+  - [8. Platform Statistics (`GET /api/stats`)](#8-platform-statistics-get-apistats)
 - [Submit Rate Limiting](#submit-rate-limiting)
 
 ---
@@ -35,6 +36,7 @@ Base URL when running locally: `http://127.0.0.1:5000`
 | `POST` | `/api/quizzes/<id>/questions` | Add a multiple-choice question to an existing quiz |
 | `POST` | `/api/quizzes/<id>/submit` | Submit answers for a quiz attempt and calculate score |
 | `GET` | `/api/quizzes/<id>/leaderboard` | Retrieve the top 10 attempts for a quiz |
+| `GET` | `/api/quizzes/<id>/stats` | Statistics for a single quiz (attempts, average score, best score, fastest time) |
 | `GET` | `/api/stats` | Platform metrics (quiz counts, attempt counts, averages) |
 
 ---
@@ -430,7 +432,46 @@ curl http://127.0.0.1:5000/api/quizzes/1/leaderboard
 
 ---
 
-### 7. Platform Statistics (`GET /api/stats`)
+### 7. Quiz Statistics (`GET /api/quizzes/<id>/stats`)
+
+Retrieves statistics for a specific quiz by its ID, including total attempts, average score, best score, and fastest completion time.
+
+#### Example Request
+```bash
+curl http://127.0.0.1:5000/api/quizzes/1/stats
+```
+
+#### Success Response (`200 OK`)
+When attempts exist:
+```json
+{
+  "attempts": 5,
+  "average_score": 8.4,
+  "best_score": 10,
+  "fastest_time": 38
+}
+```
+
+When no attempts have been submitted:
+```json
+{
+  "attempts": 0,
+  "average_score": 0.0,
+  "best_score": 0,
+  "fastest_time": 0
+}
+```
+
+#### Error Response (`404 Not Found`)
+```json
+{
+  "error": "Quiz not found"
+}
+```
+
+---
+
+### 8. Platform Statistics (`GET /api/stats`)
 
 Returns aggregate statistics across the entire application, including total quizzes, total attempts, and individual quiz averages.
 

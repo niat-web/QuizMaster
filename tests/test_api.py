@@ -413,6 +413,89 @@ def test_stats(client):
     assert stats["quizzes"][0]["average_score"] == 1
 
 
+def test_quiz_stats_unknown_quiz(client):
+    response = client.get("/api/quizzes/999/stats")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Quiz not found"}
+
+
+def test_quiz_stats_no_attempts(client):
+    quiz_id = create_quiz(client)
+    response = client.get(f"/api/quizzes/{quiz_id}/stats")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data == {
+        "attempts": 0,
+        "average_score": 0.0,
+        "best_score": 0,
+        "fastest_time": 0,
+    }
+
+
+def test_quiz_stats_with_attempts(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, "A")
+    add_question(client, quiz_id, "B")
+    questions = client.get(f"/api/quizzes/{quiz_id}").get_json()["questions"]
+    q1 = str(questions[0]["id"])
+    q2 = str(questions[1]["id"])
+
+    # Attempt 1: score 2, time 30
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Alice",
+        "answers": {q1: "A", q2: "B"},
+        "time_taken_seconds": 30,
+    })
+    # Attempt 2: score 1, time 15
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Bob",
+        "answers": {q1: "A", q2: "wrong"},
+        "time_taken_seconds": 15,
+    })
+    # Attempt 3: score 0, time 45
+    client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Charlie",
+        "answers": {q1: "wrong", q2: "wrong"},
+        "time_taken_seconds": 45,
+    })
+
+    response = client.get(f"/api/quizzes/{quiz_id}/stats")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["attempts"] == 3
+    assert data["average_score"] == 1.0  # (2 + 1 + 0) / 3 = 1.0
+    assert data["best_score"] == 2
+    assert data["fastest_time"] == 15
+
+
+def test_quiz_stats_isolation(client):
+    quiz1_id = create_quiz(client, "Quiz 1")
+    quiz2_id = create_quiz(client, "Quiz 2")
+    add_question(client, quiz1_id, "A")
+    add_question(client, quiz2_id, "B")
+    q1 = str(client.get(f"/api/quizzes/{quiz1_id}").get_json()["questions"][0]["id"])
+    q2 = str(client.get(f"/api/quizzes/{quiz2_id}").get_json()["questions"][0]["id"])
+
+    client.post(f"/api/quizzes/{quiz1_id}/submit", json={
+        "player_name": "Alice",
+        "answers": {q1: "A"},
+        "time_taken_seconds": 25,
+    })
+    client.post(f"/api/quizzes/{quiz2_id}/submit", json={
+        "player_name": "Bob",
+        "answers": {q2: "B"},
+        "time_taken_seconds": 10,
+    })
+
+    stats1 = client.get(f"/api/quizzes/{quiz1_id}/stats").get_json()
+    stats2 = client.get(f"/api/quizzes/{quiz2_id}/stats").get_json()
+
+    assert stats1["attempts"] == 1
+    assert stats1["fastest_time"] == 25
+    assert stats2["attempts"] == 1
+    assert stats2["fastest_time"] == 10
+
+
 def test_player_attempts_empty_name(client):
     response_spaces = client.get("/api/players/%20%20/attempts")
     assert response_spaces.status_code == 400

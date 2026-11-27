@@ -256,6 +256,39 @@ def leaderboard(quiz_id):
     return jsonify([attempt.to_dict() for attempt in attempts])
 
 
+@api.route("/quizzes/<int:quiz_id>/stats")
+def quiz_stats(quiz_id):
+    quiz = db.session.get(Quiz, quiz_id)
+    if quiz is None:
+        return error("Quiz not found", 404)
+
+    stats = (
+        db.session.query(
+            db.func.count(Attempt.id).label("attempts"),
+            db.func.avg(Attempt.score).label("avg_score"),
+            db.func.max(Attempt.score).label("best_score"),
+            db.func.min(Attempt.time_taken_seconds).label("fastest_time"),
+        )
+        .filter(Attempt.quiz_id == quiz_id)
+        .one()
+    )
+
+    if not stats.attempts:
+        return jsonify({
+            "attempts": 0,
+            "average_score": 0.0,
+            "best_score": 0,
+            "fastest_time": 0,
+        })
+
+    return jsonify({
+        "attempts": int(stats.attempts),
+        "average_score": round(float(stats.avg_score), 2),
+        "best_score": int(stats.best_score),
+        "fastest_time": int(stats.fastest_time or 0),
+    })
+
+
 @api.route("/stats")
 def stats():
     attempt_stats = (
