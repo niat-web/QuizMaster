@@ -267,6 +267,29 @@ def test_submit_quiz_scores_incorrect_mixed_answers(client):
     assert result["score"] == 0
     assert result["wrong"] == 2
 
+def test_submit_quiz_returns_wrong_answer_details(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id, correct_option="B")
+
+    question = client.get(
+        f"/api/quizzes/{quiz_id}"
+    ).get_json()["questions"][0]
+
+    response = client.post(f"/api/quizzes/{quiz_id}/submit", json={
+        "player_name": "Asha",
+        "answers": {str(question["id"]): "A"},
+    })
+
+    assert response.status_code == 200
+
+    result = response.get_json()
+    assert len(result["wrong_answers"]) == 1
+    assert result["wrong_answers"][0] == {
+        "question": "What is 1 + 1?",
+        "your_answer": "1",
+        "correct_answer": "2",
+    }
+
 
 def test_submit_quiz_rejects_boolean_time_taken(client):
     quiz_id = create_quiz(client)
