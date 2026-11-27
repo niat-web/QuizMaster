@@ -106,7 +106,10 @@ def get_quiz(quiz_id):
 
 @api.route("/quizzes", methods=["POST"])
 def create_quiz():
-    data = request.get_json(silent=True) or {}
+    data = get_json_object()
+    if data is None:
+        return error("Request body must be a JSON object", 400)
+
     title = get_text(data, "title")
     difficulty = get_text(data, "difficulty") or "easy"
     if not title:
@@ -128,17 +131,20 @@ def create_quiz():
     db.session.commit()
     return jsonify(quiz.to_dict()), 201
 
-
-
 @api.route("/quizzes/<int:quiz_id>/questions", methods=["POST"])
 def add_question(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
     if quiz is None:
         return error("Quiz not found", 404)
 
-    data = request.get_json(silent=True) or {}
+    data = get_json_object()
+    if data is None:
+        return error("Request body must be a JSON object", 400)
+
     text = get_text(data, "text")
+
     raw_question_type = data.get("question_type", "multiple_choice")
+
 
     if not isinstance(raw_question_type, str):
         return error("question_type must be a string", 400)
@@ -185,17 +191,20 @@ def add_question(quiz_id):
     db.session.commit()
     return jsonify(question.to_dict()), 201
 
-
 @api.route("/quizzes/<int:quiz_id>/submit", methods=["POST"])
 @limiter.limit(lambda: current_app.config["SUBMIT_RATE_LIMIT"])
 def submit_quiz(quiz_id):
     quiz = db.session.get(Quiz, quiz_id)
     if quiz is None:
         return error("Quiz not found", 404)
+
     if not quiz.questions:
         return error("This quiz has no questions", 400)
 
-    data = request.get_json(silent=True) or {}
+    data = get_json_object()
+    if data is None:
+        return error("Request body must be a JSON object", 400)
+
     player_name = get_text(data, "player_name")
     answers = data.get("answers")
     time_taken = data.get("time_taken_seconds", 0)
@@ -208,7 +217,7 @@ def submit_quiz(quiz_id):
     if isinstance(time_taken, bool) or not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
-       # Answers are keyed by question id; unanswered questions count as wrong.
+    # Answers are keyed by question id; unanswered questions count as wrong.
     # Only valid options for each question type can receive credit.
     score = 0
     for question in quiz.questions:
@@ -312,4 +321,8 @@ def player_attempts(player_name):
     )
     return jsonify([attempt.to_dict() for attempt in attempts])
 
-
+def get_json_object():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return None
+    return data

@@ -40,6 +40,13 @@ def test_create_quiz(client):
     assert data["difficulty"] == "easy"
 
 
+def test_create_quiz_rejects_non_object_json(client):
+    response = client.post("/api/quizzes", json=["Maths"])
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Request body must be a JSON object"
+    }
+
 def test_create_quiz_empty_title(client):
     response = client.post("/api/quizzes", json={"title": "  "})
     assert response.status_code == 400
@@ -146,6 +153,19 @@ def test_add_question(client):
     assert response.status_code == 201
     assert response.get_json()["text"] == "What is 1 + 1?"
 
+def test_add_question_rejects_non_object_json(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+
+    response = client.post(
+              f"/api/quizzes/{quiz_id}/questions",
+        json=["Asha"],
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Request body must be a JSON object"
+    }
 
 def test_add_true_false_question(client):
     quiz_id = create_quiz(client)
@@ -160,8 +180,6 @@ def test_add_true_false_question(client):
     assert "option_c" not in question
     assert "option_d" not in question
     assert "correct_option" not in question
-
-
 def test_add_question_wrong_option_letter(client):
     quiz_id = create_quiz(client)
     response = add_question(client, quiz_id, correct_option="E")
@@ -253,6 +271,19 @@ def test_submit_quiz_scores_answers(client):
     assert result["score"] == 1
     assert result["wrong"] == 0
     assert result["time_taken_seconds"] == 12
+def test_submit_quiz_rejects_non_object_json(client):
+    quiz_id = create_quiz(client)
+    add_question(client, quiz_id)
+
+    response = client.post(
+        f"/api/quizzes/{quiz_id}/submit",
+        json=["Asha"],
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Request body must be a JSON object"
+    }
 
 def test_submit_quiz_scores_mixed_question_types(client):
     quiz_id = create_quiz(client)
