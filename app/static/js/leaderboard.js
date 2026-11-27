@@ -30,27 +30,43 @@ async function loadLeaderboard() {
     });
 }
 
-async function loadQuizzes() {
-    const response = await fetch("/api/quizzes");
-    const quizzes = await response.json();
-    if (quizzes.length === 0) {
-        message.textContent = "No quizzes yet.";
-        return;
-    }
-    quizzes.forEach(function (quiz) {
-        const option = document.createElement("option");
-        option.value = quiz.id;
-        option.textContent = quiz.title;
-        quizSelect.appendChild(option);
-    });
 
-    // The result page links here with ?quiz=<id>
-    const wantedId = new URLSearchParams(window.location.search).get("quiz");
-    if (wantedId) {
-        quizSelect.value = wantedId;
+async function loadQuizzes() {
+    try {
+        const response = await fetch("/api/quizzes");
+
+        if (!response.ok) {
+            message.textContent = "Could not load quizzes.";
+            return;
+        }
+
+        const quizzes = await response.json();
+
+        if (quizzes.length === 0) {
+            message.textContent = "No quizzes yet.";
+            return;
+        }
+
+        quizzes.forEach(function (quiz) {
+            const option = document.createElement("option");
+            option.value = quiz.id;
+            option.textContent = quiz.title;
+            quizSelect.appendChild(option);
+        });
+
+        // The result page links here with ?quiz=<id>
+        const wantedId = new URLSearchParams(window.location.search).get("quiz");
+        if (wantedId) {
+            quizSelect.value = wantedId;
+        }
+
+        loadLeaderboard();
+
+    } catch (error) {
+        message.textContent = "Could not load quizzes.";
     }
-    loadLeaderboard();
 }
+
 
 quizSelect.addEventListener("change", loadLeaderboard);
 
