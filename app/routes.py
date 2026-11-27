@@ -208,9 +208,12 @@ def submit_quiz(quiz_id):
     if isinstance(time_taken, bool) or not isinstance(time_taken, int) or time_taken < 0:
         return error("time_taken_seconds must be a positive number", 400)
 
-       # Answers are keyed by question id; unanswered questions count as wrong.
+    # Answers are keyed by question id; unanswered questions count as wrong.
     # Only valid options for each question type can receive credit.
+   
     score = 0
+    wrong_answers = []
+
     for question in quiz.questions:
         submitted_answer = answers.get(str(question.id))
         valid_options = OPTIONS.get(question.question_type, [])
@@ -220,7 +223,22 @@ def submit_quiz(quiz_id):
             and submitted_answer == question.correct_option
         ):
             score += 1
+        else:
+            options = {
+                "A": question.option_a,
+                "B": question.option_b,
+                "C": question.option_c,
+                "D": question.option_d,
+            }
+
+            wrong_answers.append({
+                "question": question.text,
+                "your_answer": options.get(submitted_answer, "Not answered"),
+                "correct_answer": options.get(question.correct_option),
+            })
+
     total = len(quiz.questions)
+ 
 
     attempt = Attempt(
         quiz_id=quiz.id,
@@ -239,6 +257,7 @@ def submit_quiz(quiz_id):
         "correct": score,
         "wrong": total - score,
         "time_taken_seconds": time_taken,
+        "wrong_answers": wrong_answers,
     })
 
 

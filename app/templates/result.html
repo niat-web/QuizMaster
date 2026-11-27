@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 {% block title %}Result{% endblock %}
 
@@ -11,10 +12,16 @@
     <p id="result-correct"></p>
     <p id="result-wrong"></p>
     <p id="result-time"></p>
+
     <div class="buttons">
         <a id="leaderboard-link" class="button" href="#">View leaderboard</a>
-        <a id="history-link" class="button" href="{{ url_for('pages.history_page') }}">My history</a>
         <a class="button" href="{{ url_for('pages.index') }}">More quizzes</a>
+        <a id="history-link" class="button" href="{{ url_for('pages.history_page') }}">My History</a>
+    </div>
+
+    <div id="wrong-answers-section" hidden>
+        <h2>Review Your Mistakes</h2>
+        <div id="wrong-answers-list"></div>
     </div>
 </section>
 {% endblock %}
