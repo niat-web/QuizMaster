@@ -170,6 +170,11 @@ def add_question(quiz_id):
         allowed = " or ".join(OPTIONS[question_type])
         return error(f"correct_option must be {allowed}", 400)
 
+    # Case-insensitive duplicate options check
+    normalized = [o.lower() for o in options]
+    if len(set(normalized)) != len(normalized):
+        return error("Options must all be different", 400)
+    
     question = Question(
         quiz_id=quiz.id,
         text=text,
