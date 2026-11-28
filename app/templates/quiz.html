@@ -21,6 +21,9 @@
 <section id="question-box" class="card" hidden>
     <p id="progress"></p>
     <h2 id="question-text"></h2>
+    <p class="shortcut-hint" style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+  💡 Tip: Use number keys <strong>1–4</strong> to select answers, and <strong>Enter</strong> or arrow keys to navigate.
+</p>
     <div id="options"></div>
     <div class="buttons">
         <button id="prev-button" type="button">Previous</button>
@@ -33,3 +36,4 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
 {% endblock %}
+
