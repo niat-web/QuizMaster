@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}How to Play - QuizMaster{% endblock %}
+
+{% block content %}
+<section class="how-to-play">
+  <h1>How to Play</h1>
+  <p>Read these rules before starting a quiz:</p>
+  <ul>
+    <li><strong>Unanswered questions:</strong> Questions left unanswered count as wrong.</li>
+    <li><strong>Timer:</strong> Time is counted while you play.</li>
+    <li><strong>Player names:</strong> Names are limited to 30 characters.</li>
+  </ul>
+  <a href="{{ url_for('pages.index') }}">Back to Home</a>
+</section>
+{% endblock %}

@@ -21,10 +21,14 @@ def get_text(data, field):
         return ""
     return value.strip()
 
-
 @pages.route("/")
 def index():
     return render_template("index.html")
+    
+@pages.route("/how_to_play")
+@pages.route("/how-to-play")
+def how_to_play():
+    return render_template("how_to_play.html")
 
 
 @pages.route("/quiz/<int:quiz_id>")
